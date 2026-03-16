@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     
     // FatSecret API uses a method-based approach
     const url = new URL('https://platform.fatsecret.com/rest/server.api');
-    url.searchParams.set('method', 'foods.search.v2');
+    url.searchParams.set('method', 'foods.search');
     url.searchParams.set('search_expression', query);
     url.searchParams.set('format', 'json');
 
