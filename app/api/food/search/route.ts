@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     url.searchParams.set('method', 'foods.search.v2');
     url.searchParams.set('search_expression', query);
     url.searchParams.set('format', 'json');
-    url.searchParams.set('region', 'ES'); // Default to Spain for Spanish results, can be made dynamic
+    // US usually has the broadest coverage, but we keep language ES
+    url.searchParams.set('region', 'US'); 
     url.searchParams.set('language', 'es');
 
     const response = await fetch(url.toString(), {
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('FatSecret API raw data:', JSON.stringify(data).substring(0, 500));
     
     // FatSecret API uses "foods_search" or "foods" depending on version
     const foodsResult = data.foods_search || data.foods;
