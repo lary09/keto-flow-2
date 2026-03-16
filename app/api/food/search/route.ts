@@ -17,9 +17,6 @@ export async function GET(request: NextRequest) {
     url.searchParams.set('method', 'foods.search.v2');
     url.searchParams.set('search_expression', query);
     url.searchParams.set('format', 'json');
-    // US usually has the broadest coverage, but we keep language ES
-    url.searchParams.set('region', 'US'); 
-    url.searchParams.set('language', 'es');
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -32,13 +29,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('FatSecret API raw data:', JSON.stringify(data).substring(0, 500));
+    console.log('FatSecret API raw response keys:', Object.keys(data));
     
-    // FatSecret API uses "foods_search" or "foods" depending on version
+    // FatSecret search results can be nested differently
+    // Usually: data.foods_search.results.food
     const foodsResult = data.foods_search || data.foods;
-    const foods = foodsResult?.results?.food || foodsResult?.food || [];
+    const foodList = foodsResult?.results?.food || foodsResult?.food || [];
+    const foods = Array.isArray(foodList) ? foodList : (foodList ? [foodList] : []);
     
-    const normalizedFoods = (Array.isArray(foods) ? foods : [foods]).filter(f => f && f.food_name).map((food: any) => {
+    const normalizedFoods = foods.filter((f: any) => f && f.food_name).map((food: any) => {
       const desc = food.food_description || '';
       
       // Improved regex with case-insensitive and flexible spacing
