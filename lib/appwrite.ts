@@ -1,8 +1,8 @@
 import { Client, Account, Databases, ID, Query } from "appwrite";
 
-export const APPWRITE_PROJECT_ID = "69b84d1c000d50dc644e";
-export const APPWRITE_ENDPOINT = "https://nyc.cloud.appwrite.io/v1";
-export const APPWRITE_DATABASE_ID = "main"; // Assuming "main" based on common patterns, will verify if needed
+export const APPWRITE_PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "69b84d1c000d50dc644e";
+export const APPWRITE_ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || "https://nyc.cloud.appwrite.io/v1";
+export const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || "main";
 
 export const COLLECTIONS = {
   USER_PROFILES: "user_profiles",
