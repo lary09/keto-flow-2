@@ -1,83 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server'
-
-const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY || 'edcb1567aa67409a8f492aea634f77a9'
-const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com'
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  if (!SPOONACULAR_API_KEY) {
-    return NextResponse.json(
-      { error: 'Spoonacular API key not configured' },
-      { status: 500 }
-    )
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get('query');
+
+  if (!query) {
+    return NextResponse.json({ recipes: [] });
   }
 
-  const { searchParams } = new URL(request.url)
-  const query = searchParams.get('query') || ''
-  const offset = searchParams.get('offset') || '0'
-  const number = searchParams.get('number') || '10'
+  const appId = process.env.EDAMAM_RECIPE_APP_ID || process.env.EDAMAM_APP_ID;
+  const appKey = process.env.EDAMAM_RECIPE_APP_KEY || process.env.EDAMAM_APP_KEY;
+
+  if (!appId || !appKey) {
+    return NextResponse.json({ error: 'Edamam recipe credentials not configured' }, { status: 500 });
+  }
 
   try {
-    const url = new URL(`${SPOONACULAR_BASE_URL}/recipes/complexSearch`)
-    url.searchParams.set('apiKey', SPOONACULAR_API_KEY)
-    url.searchParams.set('query', query)
-    url.searchParams.set('diet', 'ketogenic')
-    url.searchParams.set('addRecipeNutrition', 'true')
-    url.searchParams.set('offset', offset)
-    url.searchParams.set('number', number)
-    url.searchParams.set('sort', 'popularity')
+    // Edamam Recipe Search API
+    // type=public search for recipes
+    // health=keto-friendly for automatic keto filtering
+    const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${appId}&app_key=${appKey}&health=keto-friendly&lang=es`;
 
-    const response = await fetch(url.toString())
-    
+    const response = await fetch(url);
+
     if (!response.ok) {
-      throw new Error(`Spoonacular API error: ${response.status}`)
+      throw new Error(`Edamam Recipe API error: ${response.status}`);
     }
 
-    const data = await response.json()
+    const data = await response.json();
     
-    // Transform the data to a simpler format
-    const recipes = data.results.map((recipe: {
-      id: number
-      title: string
-      image: string
-      readyInMinutes: number
-      servings: number
-      sourceUrl: string
-      nutrition?: {
-        nutrients: Array<{
-          name: string
-          amount: number
-        }>
-      }
-    }) => {
-      const nutrients = recipe.nutrition?.nutrients || []
-      return {
-        id: recipe.id,
-        title: recipe.title,
-        image: recipe.image,
-        readyInMinutes: recipe.readyInMinutes,
-        servings: recipe.servings,
-        sourceUrl: recipe.sourceUrl,
-        calories: nutrients.find(n => n.name === 'Calories')?.amount || 0,
-        fat: nutrients.find(n => n.name === 'Fat')?.amount || 0,
-        protein: nutrients.find(n => n.name === 'Protein')?.amount || 0,
-        carbs: nutrients.find(n => n.name === 'Carbohydrates')?.amount || 0,
-        netCarbs: nutrients.find(n => n.name === 'Net Carbohydrates')?.amount || 
-                  (nutrients.find(n => n.name === 'Carbohydrates')?.amount || 0) - 
-                  (nutrients.find(n => n.name === 'Fiber')?.amount || 0),
-      }
-    })
+    // Normalize Edamam recipe response
+    const normalizedRecipes = (data.hits || []).map((hit: any) => {
+      const recipe = hit.recipe;
+      const nutrients = recipe.totalNutrients || {};
 
-    return NextResponse.json({
-      recipes,
-      totalResults: data.totalResults,
-      offset: data.offset,
-      number: data.number,
-    })
+      return {
+        id: recipe.uri.split('#recipe_')[1] || recipe.uri, // Extract ID from URI
+        title: recipe.label,
+        image: recipe.image,
+        source: recipe.source,
+        url: recipe.url,
+        yield: recipe.yield,
+        calories: Math.round(recipe.calories / (recipe.yield || 1)),
+        fat: Math.round((nutrients.FAT?.quantity || 0) / (recipe.yield || 1)),
+        protein: Math.round((nutrients.PROCNT?.quantity || 0) / (recipe.yield || 1)),
+        carbs: Math.round((nutrients.CHOCDF?.quantity || 0) / (recipe.yield || 1)),
+        netCarbs: Math.round(((nutrients.CHOCDF?.quantity || 0) - (nutrients.FIBTG?.quantity || 0)) / (recipe.yield || 1)),
+        dietLabels: recipe.dietLabels,
+        healthLabels: recipe.healthLabels,
+        ingredients: recipe.ingredientLines,
+      };
+    });
+
+    return NextResponse.json({ 
+      recipes: normalizedRecipes,
+      _debug: normalizedRecipes.length === 0 ? data : undefined
+    });
   } catch (error) {
-    console.error('Failed to search recipes:', error)
-    return NextResponse.json(
-      { error: 'Failed to search recipes' },
-      { status: 500 }
-    )
+    console.error('Edamam recipe search error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to search recipes', 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }
