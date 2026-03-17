@@ -24,7 +24,7 @@ export function useMealLogs(date?: string) {
     }
   )
 
-  const addMealLog = async (log: Omit<MealLog, '$id' | 'userId' | 'createdAt'>) => {
+  const addMealLog = async (log: Omit<MealLog, '$id' | 'userId' | '$createdAt'>) => {
     if (!user) return
 
     const newLog = await databases.createDocument(

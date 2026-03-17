@@ -84,8 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       dailyFatGoal: 155, // ~70% of calories from fat
       dailyProteinGoal: 100, // ~20% of calories from protein
       dailyCarbGoal: 25, // ~5-10% of calories from carbs
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     }
 
     try {
