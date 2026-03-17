@@ -9,7 +9,7 @@ import { MacroRing } from '@/components/macro-ring'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2 } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2, Database } from 'lucide-react'
 import Link from 'next/link'
 import { FoodLogDialog } from '@/components/food-log-dialog'
 import { toast } from 'sonner'
@@ -64,6 +64,32 @@ export default function DashboardPage() {
     } catch {
       toast.error('Error al eliminar la entrada')
     }
+  }
+
+  if (error && (error as any)?.code === 404) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center min-h-[60vh]">
+        <div className="bg-amber-100 p-4 rounded-full mb-4">
+          <Database className="h-10 w-10 text-amber-600" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Configuración Requerida</h2>
+        <p className="text-muted-foreground mb-6 max-w-sm">
+          No se ha encontrado la base de datos en Appwrite. Para empezar, debes crear las colecciones necesarias.
+        </p>
+        <div className="space-y-2 text-sm text-left bg-muted p-4 rounded-lg w-full max-w-md">
+           <p className="font-semibold mb-2">Instrucciones:</p>
+           <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+             <li>Entra en tu consola de Appwrite</li>
+             <li>Ve a Databases &gt; main</li>
+             <li>Crea la colección: <code className="bg-background px-1 rounded">user_profiles</code></li>
+             <li>Crea la colección: <code className="bg-background px-1 rounded">meal_logs</code></li>
+           </ul>
+        </div>
+        <Button className="mt-8" onClick={() => window.location.reload()}>
+          Ya las he creado, reintentar
+        </Button>
+      </div>
+    )
   }
 
   return (
