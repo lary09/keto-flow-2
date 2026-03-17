@@ -61,7 +61,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ recipes: normalizedFoods });
+    return NextResponse.json({ 
+      recipes: normalizedFoods,
+      _debug: foods.length === 0 ? data : undefined 
+    });
   } catch (error) {
     console.error('FatSecret search error detail:', error);
     return NextResponse.json({ 
