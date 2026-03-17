@@ -79,6 +79,7 @@ export interface SavedRecipe {
   carbs: number;
   servings: number;
   readyInMinutes: number;
+  ingredients: string; // JSON string
   savedAt: string;
 }
 

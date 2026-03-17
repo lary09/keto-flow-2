@@ -24,6 +24,7 @@ interface Recipe {
   protein: number
   carbs: number
   netCarbs: number
+  ingredients: string[]
 }
 
 export default function RecipesPage() {
@@ -145,6 +146,7 @@ export default function RecipesPage() {
             carbs: Math.round(recipe.carbs),
             servings: recipe.servings,
             readyInMinutes: recipe.readyInMinutes,
+            ingredients: JSON.stringify(recipe.ingredients || []),
             savedAt: new Date().toISOString(),
           }
         )

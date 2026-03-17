@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useShoppingLists } from '@/hooks/use-shopping-lists'
+import { useSavedRecipes } from '@/hooks/use-saved-recipes'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,7 +59,10 @@ const KETO_STAPLES = [
 ]
 
 export default function ShoppingPage() {
-  const { lists, isLoading, createList, deleteList, addItemToList, toggleItemChecked, removeItemFromList } = useShoppingLists()
+  const { lists, isLoading: listsLoading, createList, deleteList, addItemToList, toggleItemChecked, removeItemFromList } = useShoppingLists()
+  const { recipes, isLoading: recipesLoading } = useSavedRecipes()
+  
+  const isLoading = listsLoading || recipesLoading
   const [newListDialogOpen, setNewListDialogOpen] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [creatingList, setCreatingList] = useState(false)
@@ -213,6 +217,79 @@ export default function ShoppingPage() {
                         </button>
                       ))}
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Dynamic Suggestions from Saved Recipes */}
+      {!isLoading && recipes.length > 0 && (
+        <div className="space-y-3 py-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tus Recetas Favoritas</h3>
+            <Badge variant="outline" className="text-[10px]">{recipes.length} guardadas</Badge>
+          </div>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3 pb-3">
+              {recipes.map((recipe) => (
+                <Card key={recipe.$id} className="min-w-[180px] overflow-hidden bg-card/50 border-border/40 hover:border-primary/50 transition-colors group relative">
+                  <div className="relative h-24 w-full">
+                    <img 
+                       src={recipe.image} 
+                       alt={recipe.title} 
+                       className="object-cover w-full h-full opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+                    <div className="absolute bottom-2 left-2 right-2">
+                        <p className="text-[10px] font-bold text-foreground line-clamp-1 truncate">{recipe.title}</p>
+                    </div>
+                  </div>
+                  <CardContent className="p-2 pt-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full h-8 text-[10px] gap-1 hover:bg-primary hover:text-primary-foreground"
+                      onClick={async () => {
+                        let targetId = selectedListId;
+                        if (!targetId && lists.length > 0) {
+                          targetId = lists[0].$id!;
+                          setSelectedListId(targetId);
+                        }
+                        
+                        if (!targetId) {
+                          try {
+                            const list = await createList(`Lista para ${recipe.title}`);
+                            if (list) {
+                              targetId = list.$id;
+                              setSelectedListId(targetId);
+                            }
+                          } catch (e) {
+                            toast.error("Crea una lista primero");
+                            return;
+                          }
+                        }
+
+                        if (targetId) {
+                          // Add all ingredients
+                          for (const ingredient of recipe.ingredients) {
+                            await addItemToList(targetId, {
+                              name: ingredient,
+                              quantity: 1,
+                              unit: '',
+                              checked: false,
+                            });
+                          }
+                          toast.success(`Ingredientes de "${recipe.title}" añadidos`);
+                        }
+                      }}
+                    >
+                      <Plus className="w-3 h-3" />
+                      Añadir ingredientes
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
