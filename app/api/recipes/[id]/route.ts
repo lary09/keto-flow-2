@@ -1,74 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server'
-
-const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY || 'edcb1567aa67409a8f492aea634f77a9'
-const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com'
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!SPOONACULAR_API_KEY) {
+  const appId = process.env.EDAMAM_RECIPE_APP_ID;
+  const appKey = process.env.EDAMAM_RECIPE_APP_KEY;
+
+  if (!appId || !appKey) {
     return NextResponse.json(
-      { error: 'Spoonacular API key not configured' },
+      { error: 'Edamam recipe credentials not configured' },
       { status: 500 }
     )
   }
 
-  const { id } = await params
+  const { id } = await params;
 
   try {
-    const url = new URL(`${SPOONACULAR_BASE_URL}/recipes/${id}/information`)
-    url.searchParams.set('apiKey', SPOONACULAR_API_KEY)
-    url.searchParams.set('includeNutrition', 'true')
+    // Edamam expects the full URI or the ID. Since we store the ID, 
+    // we reconstruct the URI: http://www.edamam.com/ontologies/edamam.owl#recipe_{id}
+    const recipeUri = `http://www.edamam.com/ontologies/edamam.owl#recipe_${id}`;
+    const url = `https://api.edamam.com/api/recipes/v2/by-uri?type=public&uri=${encodeURIComponent(recipeUri)}&app_id=${appId}&app_key=${appKey}&lang=es`;
 
-    const response = await fetch(url.toString())
+    const response = await fetch(url);
     
     if (!response.ok) {
-      throw new Error(`Spoonacular API error: ${response.status}`)
+      throw new Error(`Edamam API error: ${response.status}`);
     }
 
-    const recipe = await response.json()
-    const nutrients = recipe.nutrition?.nutrients || []
+    const data = await response.json();
+    const recipe = data.hits?.[0]?.recipe;
+
+    if (!recipe) {
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+    }
+
+    const nutrients = recipe.totalNutrients || {};
 
     return NextResponse.json({
-      id: recipe.id,
-      title: recipe.title,
+      id: id,
+      title: recipe.label,
       image: recipe.image,
-      readyInMinutes: recipe.readyInMinutes,
-      servings: recipe.servings,
-      sourceUrl: recipe.sourceUrl,
-      summary: recipe.summary,
-      instructions: recipe.instructions,
-      extendedIngredients: recipe.extendedIngredients?.map((ing: {
-        id: number
-        original: string
-        name: string
-        amount: number
-        unit: string
-        aisle: string
-      }) => ({
-        id: ing.id,
-        original: ing.original,
-        name: ing.name,
-        amount: ing.amount,
-        unit: ing.unit,
-        aisle: ing.aisle,
-      })),
-      analyzedInstructions: recipe.analyzedInstructions,
-      nutrition: {
-        calories: nutrients.find((n: { name: string; amount: number }) => n.name === 'Calories')?.amount || 0,
-        fat: nutrients.find((n: { name: string; amount: number }) => n.name === 'Fat')?.amount || 0,
-        protein: nutrients.find((n: { name: string; amount: number }) => n.name === 'Protein')?.amount || 0,
-        carbs: nutrients.find((n: { name: string; amount: number }) => n.name === 'Carbohydrates')?.amount || 0,
-        fiber: nutrients.find((n: { name: string; amount: number }) => n.name === 'Fiber')?.amount || 0,
-        netCarbs: (nutrients.find((n: { name: string; amount: number }) => n.name === 'Carbohydrates')?.amount || 0) - 
-                  (nutrients.find((n: { name: string; amount: number }) => n.name === 'Fiber')?.amount || 0),
-      },
-    })
+      source: recipe.source,
+      url: recipe.url,
+      servings: recipe.yield || 1,
+      calories: Math.round(recipe.calories / (recipe.yield || 1)),
+      fat: Math.round((nutrients.FAT?.quantity || 0) / (recipe.yield || 1)),
+      protein: Math.round((nutrients.PROCNT?.quantity || 0) / (recipe.yield || 1)),
+      carbs: Math.round((nutrients.CHOCDF?.quantity || 0) / (recipe.yield || 1)),
+      netCarbs: Math.round(((nutrients.CHOCDF?.quantity || 0) - (nutrients.FIBTG?.quantity || 0)) / (recipe.yield || 1)),
+      ingredientLines: recipe.ingredientLines,
+      healthLabels: recipe.healthLabels,
+      dietLabels: recipe.dietLabels,
+    });
   } catch (error) {
-    console.error('Failed to get recipe:', error)
+    console.error('Failed to get recipe detail:', error);
     return NextResponse.json(
-      { error: 'Failed to get recipe details' },
+      { error: 'Failed to get recipe details', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

@@ -35,24 +35,7 @@ interface Recipe {
 }
 
 interface RecipeDetail extends Recipe {
-  summary?: string
-  instructions?: string
-  extendedIngredients?: {
-    id: number
-    original: string
-    name: string
-    amount: number
-    unit: string
-    aisle: string
-  }[]
-  nutrition?: {
-    calories: number
-    fat: number
-    protein: number
-    carbs: number
-    fiber: number
-    netCarbs: number
-  }
+  ingredientLines?: string[]
 }
 
 interface RecipeDetailSheetProps {
@@ -211,7 +194,7 @@ export function RecipeDetailSheet({
                   </>
                 )}
               </Button>
-              {detail?.extendedIngredients && (
+              {detail?.ingredientLines && (
                 <Button variant="outline" className="flex-1">
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Añadir a la lista
@@ -252,41 +235,20 @@ export function RecipeDetailSheet({
             )}
 
             {/* Ingredients */}
-            {detail?.extendedIngredients && (
+            {detail?.ingredientLines && (
               <div className="mt-4">
                 <h3 className="mb-3 font-semibold text-foreground">Ingredientes</h3>
                 <ul className="space-y-2">
-                  {detail.extendedIngredients.map((ingredient) => (
-                    <li key={ingredient.id} className="flex items-start gap-2 text-sm">
+                  {detail.ingredientLines.map((line, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm">
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span className="text-foreground">{ingredient.original}</span>
+                      <span className="text-foreground">{line}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Summary */}
-            {detail?.summary && (
-              <div className="mt-6">
-                <h3 className="mb-3 font-semibold text-foreground">Sobre esta receta</h3>
-                <div
-                  className="prose prose-sm max-w-none text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: detail.summary }}
-                />
-              </div>
-            )}
-
-            {/* Instructions */}
-            {detail?.instructions && (
-              <div className="mt-6">
-                <h3 className="mb-3 font-semibold text-foreground">Instrucciones</h3>
-                <div
-                  className="prose prose-sm max-w-none text-muted-foreground"
-                  dangerouslySetInnerHTML={{ __html: detail.instructions }}
-                />
-              </div>
-            )}
 
             {/* Source Link */}
             <div className="mt-6 pb-8">
