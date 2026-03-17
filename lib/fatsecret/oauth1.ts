@@ -5,7 +5,7 @@ import crypto from 'crypto';
  * This avoids the IP whitelisting restrictions of OAuth 2.0.
  */
 
-function escape(str: string) {
+function rfc3986Encode(str: string) {
   return encodeURIComponent(str)
     .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
     .replace(/%7E/g, '~');
@@ -19,7 +19,7 @@ export async function fatSecretRequest(params: Record<string, string>) {
     throw new Error('FatSecret credentials not configured');
   }
 
-  const method = 'GET';
+  const httpMethod = 'GET';
   const url = 'https://platform.fatsecret.com/rest/server.api';
   
   const oauthParams: Record<string, string> = {
@@ -32,21 +32,21 @@ export async function fatSecretRequest(params: Record<string, string>) {
     format: 'json',
   };
 
-  // 1. Sort parameters alphabetically by key
+  // 1. Parameter normalization
   const sortedKeys = Object.keys(oauthParams).sort();
   const baseStringParams = sortedKeys
-    .map((key) => `${escape(key)}=${escape(oauthParams[key])}`)
+    .map((key) => `${rfc3986Encode(key)}=${rfc3986Encode(oauthParams[key])}`)
     .join('&');
 
-  // 2. Construct Signature Base String
+  // 2. Signature Base String
   const signatureBaseString = [
-    method.toUpperCase(),
-    escape(url),
-    escape(baseStringParams),
+    httpMethod.toUpperCase(),
+    rfc3986Encode(url),
+    rfc3986Encode(baseStringParams),
   ].join('&');
 
-  // 3. Signing Key (Consumer Secret + "&" + Access Token Secret, but we use 2-legged OAuth so it's just Consumer Secret + "&")
-  const signingKey = `${escape(clientSecret)}&`;
+  // 3. Signing Key
+  const signingKey = `${rfc3986Encode(clientSecret)}&`;
 
   // 4. Generate Signature
   const signature = crypto
@@ -56,9 +56,10 @@ export async function fatSecretRequest(params: Record<string, string>) {
 
   oauthParams.oauth_signature = signature;
 
-  // 5. Build final URL
-  const searchParams = new URLSearchParams(oauthParams);
-  const finalUrl = `${url}?${searchParams.toString()}`;
+  const queryItems = Object.keys(oauthParams).map(key => `${rfc3986Encode(key)}=${rfc3986Encode(oauthParams[key])}`);
+  const finalUrl = `${url}?${queryItems.join('&')}`;
+
+  console.log('Final URL for FatSecret:', finalUrl);
 
   const response = await fetch(finalUrl);
   
