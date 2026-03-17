@@ -166,25 +166,25 @@ export function RecipeDetailSheet({
             <div className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-muted/50 p-3">
               <div className="text-center">
                 <p className="text-lg font-bold text-foreground">
-                  {Math.round((detail?.nutrition?.calories || recipe.calories) / recipe.servings)}
+                  {Math.round(detail?.nutrition?.calories || recipe.calories || 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">kcal</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-fat">
-                  {Math.round((detail?.nutrition?.fat || recipe.fat) / recipe.servings)}g
+                  {Math.round(detail?.nutrition?.fat || recipe.fat || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Grasas</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-protein">
-                  {Math.round((detail?.nutrition?.protein || recipe.protein) / recipe.servings)}g
+                  {Math.round(detail?.nutrition?.protein || recipe.protein || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Protein</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-carbs">
-                  {Math.round((detail?.nutrition?.netCarbs || recipe.netCarbs) / recipe.servings)}g
+                  {Math.round(detail?.nutrition?.netCarbs || recipe.netCarbs || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Carbs Netos</p>
               </div>
@@ -290,11 +290,11 @@ export function RecipeDetailSheet({
             <div className="mt-6 pb-8">
               <Button variant="link" className="h-auto p-0" asChild>
                 <a
-                  href={`https://spoonacular.com/recipes/${recipe.title.toLowerCase().replace(/\s+/g, '-')}-${recipe.id}`}
+                  href={recipe.url || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Ver receta completa en Spoonacular
+                  Ver receta completa en {recipe.source || 'Edamam'}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
               </Button>

@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
       const nutrients = recipe.totalNutrients || {};
 
       return {
-        id: recipe.uri.split('#recipe_')[1] || recipe.uri, // Extract ID from URI
+        id: recipe.uri.split('#recipe_')[1] || recipe.uri,
         title: recipe.label,
         image: recipe.image,
         source: recipe.source,
         url: recipe.url,
-        yield: recipe.yield,
+        servings: recipe.yield || 1,
         calories: Math.round(recipe.calories / (recipe.yield || 1)),
         fat: Math.round((nutrients.FAT?.quantity || 0) / (recipe.yield || 1)),
         protein: Math.round((nutrients.PROCNT?.quantity || 0) / (recipe.yield || 1)),
