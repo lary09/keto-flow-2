@@ -113,8 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       COLLECTIONS.USER_PROFILES,
       user.$id,
       {
-        ...updates,
-        updatedAt: new Date().toISOString(),
+        ...updates
       }
     )
     setProfile(updated as unknown as UserProfile)

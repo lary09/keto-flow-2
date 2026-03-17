@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Apple } from 'lucid
 import { FoodLogDialog } from '@/components/food-log-dialog'
 import { cn } from '@/lib/utils'
 import type { MealLog } from '@/lib/appwrite'
+import { MealRecommendations } from '@/components/meal-recommendations'
 
 const mealTypeConfig = {
   breakfast: { icon: Coffee, label: 'Desayuno', shortLabel: 'Des' },
@@ -164,6 +165,9 @@ export default function MealPlannerPage() {
           </div>
         </div>
       )}
+
+      {/* Smart Recommendations */}
+      <MealRecommendations />
 
       {/* Meals for Selected Day */}
       <div className="space-y-3">

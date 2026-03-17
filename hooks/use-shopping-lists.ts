@@ -15,7 +15,7 @@ export function useShoppingLists() {
         COLLECTIONS.SHOPPING_LISTS,
         [
           Query.equal('userId', user!.$id),
-          Query.orderDesc('updatedAt'),
+          Query.orderDesc('$createdAt'),
         ]
       )
       return response.documents.map((doc) => ({
@@ -36,8 +36,6 @@ export function useShoppingLists() {
         userId: user.$id,
         name,
         items: '[]',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       }
     )
     mutate()
@@ -54,9 +52,7 @@ export function useShoppingLists() {
   }
 
   const updateList = async (listId: string, updates: { name?: string; items?: ShoppingItem[] }) => {
-    const updateData: Record<string, string> = {
-      updatedAt: new Date().toISOString(),
-    }
+    const updateData: Record<string, string> = {}
     if (updates.name) updateData.name = updates.name
     if (updates.items) updateData.items = JSON.stringify(updates.items)
 
