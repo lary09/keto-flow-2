@@ -16,6 +16,33 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // 1. Check Appwrite for cached community foods first
+    const { databases, APPWRITE_DATABASE_ID, COLLECTIONS, Query } = await import('@/lib/appwrite');
+    
+    try {
+      const localResult = await databases.listDocuments(
+        APPWRITE_DATABASE_ID,
+        COLLECTIONS.COMMUNITY_FOODS,
+        [Query.search('foodName', query)]
+      );
+
+      if (localResult.documents.length > 0) {
+        const normalizedLocal = localResult.documents.map((doc: any) => ({
+          id: doc.$id,
+          title: doc.foodName,
+          calories: doc.calories,
+          fat: doc.fat,
+          protein: doc.protein,
+          carbs: doc.carbs,
+          servingSize: doc.servingSize,
+          isCommunity: true
+        }));
+        
+        return NextResponse.json({ recipes: normalizedLocal, source: 'local' });
+      }
+    } catch (e) {
+      console.error('Local search failed, falling back to Edamam:', e);
+    }
     // Edamam Food Database API
     // Using &lang=es for Spanish results
     const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${appId}&app_key=${appKey}&ingr=${encodeURIComponent(query)}&lang=es`;

@@ -9,6 +9,8 @@ export const COLLECTIONS = {
   MEAL_LOGS: "meal_logs",
   SHOPPING_LISTS: "shopping_lists",
   SAVED_RECIPES: "saved_recipes",
+  COMMUNITY_FOODS: "community_foods",
+  WEIGHT_LOGS: "weight_logs",
 };
 
 const client = new Client()
@@ -78,6 +80,25 @@ export interface SavedRecipe {
   servings: number;
   readyInMinutes: number;
   savedAt: string;
+}
+
+export interface WeightLog {
+  $id: string;
+  userId: string;
+  weight: number;
+  bmi: number;
+  date: string;
+  $createdAt: string;
+}
+
+export interface CommunityFood {
+  $id: string;
+  foodName: string;
+  calories: number;
+  fat: number;
+  protein: number;
+  carbs: number;
+  servingSize?: string;
 }
 
 export { client, account, databases, ID, Query };
