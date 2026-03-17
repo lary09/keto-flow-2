@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session)
 
     // Create default profile with keto macros
-    const defaultProfile: Omit<UserProfile, '$id'> = {
+    const defaultProfile: Omit<UserProfile, '$id' | '$createdAt' | '$updatedAt'> = {
       userId: session.$id,
       email,
       name,

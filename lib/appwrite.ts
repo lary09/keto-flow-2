@@ -27,8 +27,8 @@ export interface UserProfile {
   dailyFatGoal: number;
   dailyProteinGoal: number;
   dailyCarbGoal: number;
-  createdAt: string;
-  updatedAt: string;
+  $createdAt: string;
+  $updatedAt: string;
 }
 
 export interface MealLog {
@@ -61,8 +61,8 @@ export interface ShoppingList {
   userId: string;
   name: string;
   items: string; // JSON string
-  createdAt: string;
-  updatedAt: string;
+  $createdAt: string;
+  $updatedAt: string;
 }
 
 export interface SavedRecipe {
