@@ -85,7 +85,11 @@ export function RecipeDetailSheet({
   }, [recipe, open])
 
   const handleAddToMeal = async (mealType: MealLog['mealType']) => {
-    if (!recipe || !user) return
+    console.log('handleAddToMeal called', { recipeId: recipe.id, hasUser: !!user })
+    if (!recipe || !user) {
+      if (!user) toast.error('No se ha podido establecer una sesión de usuario.')
+      return
+    }
 
     setAddingToMeal(true)
     try {
@@ -104,7 +108,8 @@ export function RecipeDetailSheet({
       onOpenChange(false)
     } catch (err) {
       console.error('Error al añadir a la comida:', err)
-      toast.error('Error al añadir a la comida')
+      const message = err instanceof Error ? err.message : 'Error desconocido'
+      toast.error(`Error al añadir: ${message}`)
     } finally {
       setAddingToMeal(false)
     }
