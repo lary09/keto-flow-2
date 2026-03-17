@@ -27,14 +27,25 @@ export function useMealLogs(date?: string) {
   const addMealLog = async (log: Omit<MealLog, '$id' | 'userId' | '$createdAt'>) => {
     if (!user) return
 
+    const payload: any = {
+      userId: user.$id,
+      date: log.date,
+      mealType: log.mealType,
+      foodName: log.foodName,
+      calories: log.calories,
+      fat: log.fat,
+      protein: log.protein,
+      carbs: log.carbs,
+    }
+
+    // Only add optional fields if the user has confirmed they created them
+    // For now, let's keep it minimal to avoid "Unknown attribute" errors
+    
     const newLog = await databases.createDocument(
       APPWRITE_DATABASE_ID,
       COLLECTIONS.MEAL_LOGS,
       ID.unique(),
-      {
-        ...log,
-        userId: user.$id,
-      }
+      payload
     )
     mutate()
     return newLog
