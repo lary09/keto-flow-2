@@ -20,16 +20,18 @@ import { toast } from 'sonner'
 import type { MealLog } from '@/lib/appwrite'
 
 interface Recipe {
-  id: number
+  id: string | number
   title: string
   image: string
-  readyInMinutes: number
+  readyInMinutes?: number
   servings: number
   calories: number
   fat: number
   protein: number
   carbs: number
   netCarbs: number
+  url?: string
+  source?: string
 }
 
 interface RecipeDetail extends Recipe {
@@ -139,7 +141,7 @@ export function RecipeDetailSheet({
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-background/90 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <SheetHeader>
                 <SheetTitle className="text-left text-xl text-foreground">
