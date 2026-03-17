@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fatSecretRequest } from '@/lib/fatsecret/oauth1';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,53 +8,52 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ recipes: [] });
   }
 
+  const appId = process.env.EDAMAM_APP_ID;
+  const appKey = process.env.EDAMAM_APP_KEY;
+
+  if (!appId || !appKey) {
+    return NextResponse.json({ error: 'Edamam credentials not configured' }, { status: 500 });
+  }
+
   try {
-    // FatSecret search via OAuth 1.0a
-    const data = await fatSecretRequest({
-      method: 'foods.search',
-      search_expression: query,
-      region: 'ES',
-      language: 'es',
-    });
-    
-    console.log('FatSecret API raw response keys:', Object.keys(data));
-    
-    // FatSecret results can be deeply nested: foods.results.food OR foods_search.results.food
-    const foodsRoot = data.foods_search || data.foods;
-    const foodResults = foodsRoot?.results?.food || foodsRoot?.food || [];
-    const foods = Array.isArray(foodResults) ? foodResults : (foodResults ? [foodResults] : []);
-    
-    console.log(`Found ${foods.length} foods from FatSecret`);
+    // Edamam Food Database API
+    // Using &lang=es for Spanish results
+    const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${appId}&app_key=${appKey}&ingr=${encodeURIComponent(query)}&lang=es`;
 
-    const normalizedFoods = foods.filter((f: any) => f && f.food_name).map((food: any) => {
-      const desc = food.food_description || '';
-      
-      // calories are usually in "Calories: 123kcal" or just "123kcal"
-      const calories = parseFloat(desc.match(/Calories:\s*(\d+)/i)?.[1] || desc.match(/(\d+)kcal/i)?.[1] || '0');
-      const fat = parseFloat(desc.match(/Fat:\s*([\d.]+)g/i)?.[1] || '0');
-      const carbs = parseFloat(desc.match(/Carbs:\s*([\d.]+)g/i)?.[1] || '0');
-      const protein = parseFloat(desc.match(/Protein:\s*([\d.]+)g/i)?.[1] || '0');
+    const response = await fetch(url);
 
+    if (!response.ok) {
+      throw new Error(`Edamam API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Normalize Edamam response to match our UI expectations
+    const normalizedFoods = (data.hints || []).map((hint: any) => {
+      const food = hint.food;
+      const nutrients = food.nutrients || {};
+
+      // Proteins, Fats, and Carbs are usually per 100g or per serving in Edamam
       return {
-        id: food.food_id,
-        title: food.food_name,
-        brand: food.brand_name || '',
-        type: food.food_type,
-        calories,
-        fat,
-        protein,
-        carbs,
-        netCarbs: carbs, 
-        description: desc,
+        id: food.foodId,
+        title: food.label,
+        brand: food.brand || '',
+        category: food.category,
+        calories: Math.round(nutrients.ENERC_KCAL || 0),
+        fat: parseFloat((nutrients.FAT || 0).toFixed(1)),
+        protein: parseFloat((nutrients.PROCNT || 0).toFixed(1)),
+        carbs: parseFloat((nutrients.CHOCDF || 0).toFixed(1)),
+        netCarbs: parseFloat(((nutrients.CHOCDF || 0) - (nutrients.FIBTG || 0)).toFixed(1)), // Carbs - Fiber
+        image: food.image,
       };
     });
 
     return NextResponse.json({ 
       recipes: normalizedFoods,
-      _debug: foods.length === 0 ? data : undefined 
+      _debug: normalizedFoods.length === 0 ? data : undefined
     });
   } catch (error) {
-    console.error('FatSecret search error detail:', error);
+    console.error('Edamam search error:', error);
     return NextResponse.json({ 
       error: 'Failed to search food', 
       details: error instanceof Error ? error.message : String(error) 
