@@ -10,9 +10,8 @@ import { Separator } from '@/components/ui/separator'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Leaf, LogOut, Save, Scale } from 'lucide-react'
+import { Leaf, LogOut, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { HealthTracker } from '@/components/health-tracker'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -147,9 +146,6 @@ export default function ProfilePage() {
           </Button>
         </CardContent>
       </Card>
-      
-      {/* Health Progress */}
-      <HealthTracker />
 
       {/* Macro Ratio Info */}
       <Card>

@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
 import { databases, APPWRITE_DATABASE_ID, COLLECTIONS, ID, Query, type WeightLog } from '@/lib/appwrite'
 import { toast } from 'sonner'
-import { Scale, Activity, TrendingDown, TrendingUp } from 'lucide-react'
+import { Scale, Activity, TrendingDown, TrendingUp, History } from 'lucide-react'
 
 export function HealthTracker() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const [weight, setWeight] = useState('')
   const [height, setHeight] = useState('175') // DEFAULT HEIGHT in cm
   const [logs, setLogs] = useState<WeightLog[]>([])
@@ -85,17 +85,17 @@ export function HealthTracker() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900 border-emerald-500/20 shadow-xl">
+      <Card className="border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-emerald-400 flex items-center gap-2">
-            <Scale className="w-5 h-5" />
+          <CardTitle className="text-primary flex items-center gap-2">
+            <Scale className="w-5 h-5 text-primary" />
             Control de Peso e IMC
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="weight" className="text-slate-300">Peso (kg)</Label>
+              <Label htmlFor="weight" className="text-muted-foreground">Peso (kg)</Label>
               <Input 
                 id="weight"
                 type="number" 
@@ -103,24 +103,24 @@ export function HealthTracker() {
                 placeholder="Ej: 85.5"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white focus:border-emerald-500"
+                className="bg-background border-input text-foreground focus:ring-primary"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="height" className="text-slate-300">Altura (cm)</Label>
+              <Label htmlFor="height" className="text-muted-foreground">Altura (cm)</Label>
               <Input 
                 id="height"
                 type="number" 
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-white focus:border-emerald-500"
+                className="bg-background border-input text-foreground focus:ring-primary"
               />
             </div>
             <div className="flex items-end">
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm"
               >
                 {isLoading ? 'Guardando...' : 'Registrar'}
               </Button>
@@ -130,45 +130,52 @@ export function HealthTracker() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="border-border">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-500/10 rounded-full">
-                  <Activity className="w-6 h-6 text-blue-400" />
+                <div className="p-3 bg-primary/10 rounded-full">
+                  <Activity className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Tu IMC Actual</p>
-                  <p className={`text-2xl font-bold ${getBMICategory(currentBMI).color}`}>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold">Tu IMC Actual</p>
+                  <p className={`text-3xl font-bold ${getBMICategory(currentBMI).color}`}>
                     {currentBMI || '--'}
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-500 uppercase font-semibold">Estado</p>
-                <p className="font-medium text-slate-200">{getBMICategory(currentBMI).label}</p>
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Estado</p>
+                <p className="font-medium text-foreground">{getBMICategory(currentBMI).label}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="border-border">
           <CardContent className="pt-6">
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-400 flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <History className="w-4 h-4 text-muted-foreground" />
                 Historial Reciente
               </p>
-              {logs.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">No hay registros aún.</p>
-              ) : (
-                logs.map((log) => (
-                  <div key={log.$id} className="flex justify-between items-center p-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
-                    <span className="text-xs text-slate-400">{log.date}</span>
-                    <span className="text-sm font-bold text-slate-200">{log.weight} kg</span>
-                    <span className="text-xs font-medium text-blue-400">IMC: {log.bmi}</span>
-                  </div>
-                ))
-              )}
+              <div className="space-y-2">
+                {logs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic text-center py-4">No hay registros aún.</p>
+                ) : (
+                  logs.map((log) => (
+                    <div key={log.$id} className="flex justify-between items-center p-3 bg-muted/30 rounded-lg border border-border/50 transition-colors hover:bg-muted/50">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{log.date}</span>
+                        <span className="text-sm font-bold text-foreground">{log.weight} kg</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">IMC: {log.bmi}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
