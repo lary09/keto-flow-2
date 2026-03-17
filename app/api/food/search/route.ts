@@ -31,17 +31,18 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log('FatSecret API raw response keys:', Object.keys(data));
     
-    // FatSecret search results can be nested differently
-    // Usually: data.foods_search.results.food
-    const foodsResult = data.foods_search || data.foods;
-    const foodList = foodsResult?.results?.food || foodsResult?.food || [];
-    const foods = Array.isArray(foodList) ? foodList : (foodList ? [foodList] : []);
+    // FatSecret results can be deeply nested: foods.results.food OR foods_search.results.food
+    const foodsRoot = data.foods_search || data.foods;
+    const foodResults = foodsRoot?.results?.food || foodsRoot?.food || [];
+    const foods = Array.isArray(foodResults) ? foodResults : (foodResults ? [foodResults] : []);
     
+    console.log(`Found ${foods.length} foods from FatSecret`);
+
     const normalizedFoods = foods.filter((f: any) => f && f.food_name).map((food: any) => {
       const desc = food.food_description || '';
       
-      // Improved regex with case-insensitive and flexible spacing
-      const calories = parseFloat(desc.match(/Calories:\s*(\d+)/i)?.[1] || '0');
+      // calories are usually in "Calories: 123kcal" or just "123kcal"
+      const calories = parseFloat(desc.match(/Calories:\s*(\d+)/i)?.[1] || desc.match(/(\d+)kcal/i)?.[1] || '0');
       const fat = parseFloat(desc.match(/Fat:\s*([\d.]+)g/i)?.[1] || '0');
       const carbs = parseFloat(desc.match(/Carbs:\s*([\d.]+)g/i)?.[1] || '0');
       const protein = parseFloat(desc.match(/Protein:\s*([\d.]+)g/i)?.[1] || '0');
