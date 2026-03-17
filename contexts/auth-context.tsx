@@ -39,15 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      let session;
+      let sessionUser;
       try {
-        session = await account.get()
+        sessionUser = await account.get()
       } catch {
         // No current session, attempt to create anonymous session
-        session = await account.createAnonymousSession()
+        await account.createAnonymousSession()
+        sessionUser = await account.get() // Get the user object for the new session
       }
-      setUser(session)
-      await fetchProfile(session.$id)
+      setUser(sessionUser)
+      await fetchProfile(sessionUser.$id)
     } catch (err) {
       console.error('Failed to get or create session:', err)
       setUser(null)
