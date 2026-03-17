@@ -43,7 +43,7 @@ export interface MealLog {
   carbs: number;
   servingSize?: string;
   recipeId?: number | string;
-  createdAt: string;
+  $createdAt: string;
 }
 
 export interface ShoppingItem {

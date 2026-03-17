@@ -17,7 +17,7 @@ export function useMealLogs(date?: string) {
         [
           Query.equal('userId', user!.$id),
           Query.equal('date', today),
-          Query.orderAsc('createdAt'),
+          Query.orderAsc('$createdAt'),
         ]
       )
       return response.documents as unknown as MealLog[]
@@ -34,7 +34,6 @@ export function useMealLogs(date?: string) {
       {
         ...log,
         userId: user.$id,
-        createdAt: new Date().toISOString(),
       }
     )
     mutate()
