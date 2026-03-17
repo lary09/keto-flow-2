@@ -1,34 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFatSecretToken } from '@/lib/fatsecret/auth';
+import { fatSecretRequest } from '@/lib/fatsecret/oauth1';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
 
   if (!query) {
-    return NextResponse.json({ error: 'Missing query parameter' }, { status: 400 });
+    return NextResponse.json({ recipes: [] });
   }
 
   try {
-    const token = await getFatSecretToken();
-    
-    // FatSecret API uses a method-based approach
-    const url = new URL('https://platform.fatsecret.com/rest/server.api');
-    url.searchParams.set('method', 'foods.search');
-    url.searchParams.set('search_expression', query);
-    url.searchParams.set('format', 'json');
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+    // FatSecret search via OAuth 1.0a
+    const data = await fatSecretRequest({
+      method: 'foods.search',
+      search_expression: query,
+      region: 'ES',
+      language: 'es',
     });
-
-    if (!response.ok) {
-      throw new Error(`FatSecret API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    
     console.log('FatSecret API raw response keys:', Object.keys(data));
     
     // FatSecret results can be deeply nested: foods.results.food OR foods_search.results.food
