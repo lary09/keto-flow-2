@@ -89,15 +89,15 @@ export function RecipeDetailSheet({
 
     setAddingToMeal(true)
     try {
-      const nutrition = detail?.nutrition || recipe
+      const data = detail || recipe
       await addMealLog({
         date: today,
         mealType,
         foodName: recipe.title,
-        calories: Math.round(nutrition.calories / recipe.servings),
-        fat: Math.round(nutrition.fat / recipe.servings),
-        protein: Math.round(nutrition.protein / recipe.servings),
-        carbs: Math.round(nutrition.carbs / recipe.servings),
+        calories: Math.round(data.calories),
+        fat: Math.round(data.fat),
+        protein: Math.round(data.protein),
+        carbs: Math.round(data.carbs),
         recipeId: String(recipe.id),
       })
       toast.success(`¡Añadido a ${mealType}!`)
@@ -151,25 +151,25 @@ export function RecipeDetailSheet({
             <div className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-muted/50 p-3">
               <div className="text-center">
                 <p className="text-lg font-bold text-foreground">
-                  {Math.round(detail?.nutrition?.calories || recipe.calories || 0)}
+                  {Math.round(detail?.calories || recipe.calories || 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">kcal</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-fat">
-                  {Math.round(detail?.nutrition?.fat || recipe.fat || 0)}g
+                  {Math.round(detail?.fat || recipe.fat || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Grasas</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-protein">
-                  {Math.round(detail?.nutrition?.protein || recipe.protein || 0)}g
+                  {Math.round(detail?.protein || recipe.protein || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Protein</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-carbs">
-                  {Math.round(detail?.nutrition?.netCarbs || recipe.netCarbs || 0)}g
+                  {Math.round(detail?.netCarbs || recipe.netCarbs || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Carbs Netos</p>
               </div>
