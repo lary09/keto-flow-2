@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Empty,
   EmptyHeader,
@@ -28,12 +29,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Plus, MoreVertical, Trash2, ShoppingCart, Check } from 'lucide-react'
+import { Plus, MoreVertical, Trash2, ShoppingCart, Check, Apple, Beef, Droplets, Leaf } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { ShoppingItem } from '@/lib/appwrite'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { Apple, Beef, Droplets, Leaf } from 'lucide-react'
 
 const KETO_STAPLES = [
   {
@@ -54,7 +53,7 @@ const KETO_STAPLES = [
   {
     category: 'Snacks',
     icon: Apple,
-    items: ['Queso Manchego', 'Almendras', 'Aceitunas'],
+    items: ['Quesos', 'Almendras', 'Aceitunas'],
   },
 ]
 
@@ -159,6 +158,70 @@ export default function ShoppingPage() {
         </div>
       )}
 
+      {/* Keto Suggestions (Visible always) */}
+      {!isLoading && (
+        <div className="space-y-3 py-2">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Sugerencias Keto</h3>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3 pb-3">
+              {KETO_STAPLES.map((cat) => (
+                <Card key={cat.category} className="min-w-[160px] bg-muted/20 border-border/40">
+                  <CardHeader className="p-3 pb-0">
+                    <CardTitle className="text-xs flex items-center gap-2">
+                      <cat.icon className="w-3 h-3 text-primary" />
+                      {cat.category}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-2">
+                    <div className="flex flex-wrap gap-1">
+                      {cat.items.map((item) => (
+                        <button
+                          key={item}
+                          onClick={async () => {
+                            let targetId = selectedListId
+                            if (!targetId && lists.length > 0) {
+                              targetId = lists[0].$id!
+                              setSelectedListId(targetId)
+                            }
+                            
+                            if (!targetId) {
+                              try {
+                                const list = await createList("Mi Compra Keto")
+                                if (list) {
+                                  targetId = list.$id
+                                  setSelectedListId(targetId)
+                                }
+                              } catch (e) {
+                                toast.error("Crea una lista primero")
+                                return
+                              }
+                            }
+
+                            if (targetId) {
+                              await addItemToList(targetId, {
+                                name: item,
+                                quantity: 1,
+                                unit: '',
+                                checked: false,
+                              })
+                              toast.success(`${item} añadido`)
+                            }
+                          }}
+                          className="text-[10px] bg-background border border-border px-2 py-1 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
+                        >
+                          + {item}
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      )}
+
       {/* Empty State */}
       {!isLoading && lists.length === 0 && (
         <Empty>
@@ -168,7 +231,7 @@ export default function ShoppingPage() {
             </EmptyMedia>
             <EmptyTitle>No hay listas de compras</EmptyTitle>
             <EmptyDescription>
-              Crea tu primera lista de compras para empezar a organizar tus alimentos.
+              Crea tu primera lista de compras o añade una sugerencia arriba.
             </EmptyDescription>
           </EmptyHeader>
           <Button onClick={() => setNewListDialogOpen(true)}>
@@ -178,9 +241,9 @@ export default function ShoppingPage() {
         </Empty>
       )}
 
-      {/* Lists */}
+      {/* Lists Selection Screen */}
       {!isLoading && lists.length > 0 && !selectedListId && (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3">
           {lists.map((list) => {
             const checked = list.items.filter((i) => i.checked).length
             const total = list.items.length
@@ -233,13 +296,12 @@ export default function ShoppingPage() {
         </div>
       )}
 
-      {/* Selected List Detail */}
+      {/* Selected List Detail Screen */}
       {selectedList && (
         <div className="space-y-4">
-          {/* Back Button and Header */}
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => setSelectedListId(null)}>
-              Back
+              Volver
             </Button>
             <div className="flex-1">
               <h2 className="font-semibold text-foreground">{selectedList.name}</h2>
@@ -249,7 +311,6 @@ export default function ShoppingPage() {
             </div>
           </div>
 
-          {/* Add Item Form */}
           <form onSubmit={handleAddItem} className="flex gap-2">
             <Input
               placeholder="Añadir artículo..."
@@ -275,55 +336,13 @@ export default function ShoppingPage() {
             </Button>
           </form>
 
-          {/* Keto Suggestions */}
-          <div className="space-y-3 py-2">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Sugerencias Keto</h3>
-            <ScrollArea className="w-full whitespace-nowrap">
-              <div className="flex gap-3 pb-3">
-                {KETO_STAPLES.map((cat) => (
-                  <Card key={cat.category} className="min-w-[160px] bg-muted/20 border-border/40">
-                    <CardHeader className="p-3 pb-0">
-                      <CardTitle className="text-xs flex items-center gap-2">
-                        <cat.icon className="w-3 h-3 text-primary" />
-                        {cat.category}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-2">
-                      <div className="flex flex-wrap gap-1">
-                        {cat.items.map((item) => (
-                          <button
-                            key={item}
-                            onClick={() => {
-                              addItemToList(selectedListId!, {
-                                name: item,
-                                quantity: 1,
-                                unit: '',
-                                checked: false,
-                              })
-                              toast.success(`${item} añadido`)
-                            }}
-                            className="text-[10px] bg-background border border-border px-2 py-1 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors"
-                          >
-                            + {item}
-                          </button>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          <div className="space-y-2">
+            {selectedList.items.length === 0 ? (
+              <div className="py-8 text-center border rounded-lg border-dashed">
+                <p className="text-sm text-muted-foreground">No hay artículos aún. Añade el primero arriba.</p>
               </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </div>
-
-          {/* Items */}
-          {selectedList.items.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">No hay artículos aún. Añade el primero arriba.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {selectedList.items
+            ) : (
+              selectedList.items
                 .sort((a, b) => (a.checked === b.checked ? 0 : a.checked ? 1 : -1))
                 .map((item) => (
                   <div
@@ -356,13 +375,12 @@ export default function ShoppingPage() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
-            </div>
-          )}
+                ))
+            )}
+          </div>
         </div>
       )}
 
-      {/* New List Dialog */}
       <Dialog open={newListDialogOpen} onOpenChange={setNewListDialogOpen}>
         <DialogContent>
           <DialogHeader>
