@@ -85,8 +85,8 @@ export function RecipeDetailSheet({
   }, [recipe, open])
 
   const handleAddToMeal = async (mealType: MealLog['mealType']) => {
-    console.log('handleAddToMeal called', { recipeId: recipe.id, hasUser: !!user })
     if (!recipe || !user) {
+      console.log('handleAddToMeal aborted', { hasRecipe: !!recipe, hasUser: !!user })
       if (!user) toast.error('No se ha podido establecer una sesión de usuario.')
       return
     }

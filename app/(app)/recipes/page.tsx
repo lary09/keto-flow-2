@@ -14,7 +14,7 @@ import { databases, APPWRITE_DATABASE_ID, COLLECTIONS, Query, ID, type SavedReci
 import { toast } from 'sonner'
 
 interface Recipe {
-  id: number
+  id: string
   title: string
   image: string
   readyInMinutes: number
@@ -31,7 +31,7 @@ export default function RecipesPage() {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [savedRecipeIds, setSavedRecipeIds] = useState<Set<number>>(new Set())
+  const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)

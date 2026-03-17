@@ -70,7 +70,7 @@ export interface ShoppingList {
 export interface SavedRecipe {
   $id: string;
   userId: string;
-  recipeId: number;
+  recipeId: string;
   title: string;
   image: string;
   calories: number;
