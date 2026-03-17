@@ -31,8 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userId
       )
       setProfile(doc as unknown as UserProfile)
-    } catch {
-      // Profile doesn't exist yet, that's okay
+    } catch (err: any) {
+      if (err?.code === 404) {
+        console.warn('Colección user_profiles no encontrada. Verifica tu configuración de Appwrite.')
+      }
       setProfile(null)
     }
   }, [])

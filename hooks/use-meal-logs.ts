@@ -11,16 +11,24 @@ export function useMealLogs(date?: string) {
   const { data, error, isLoading, mutate } = useSWR(
     user ? `meal-logs-${user.$id}-${today}` : null,
     async () => {
-      const response = await databases.listDocuments(
-        APPWRITE_DATABASE_ID,
-        COLLECTIONS.MEAL_LOGS,
-        [
-          Query.equal('userId', user!.$id),
-          Query.equal('date', today),
-          Query.orderAsc('$createdAt'),
-        ]
-      )
-      return response.documents as unknown as MealLog[]
+      try {
+        const response = await databases.listDocuments(
+          APPWRITE_DATABASE_ID,
+          COLLECTIONS.MEAL_LOGS,
+          [
+            Query.equal('userId', user!.$id),
+            Query.equal('date', today),
+            Query.orderAsc('$createdAt'),
+          ]
+        )
+        return response.documents as unknown as MealLog[]
+      } catch (err: any) {
+        if (err?.code === 404) {
+          console.error(`Colección ${COLLECTIONS.MEAL_LOGS} no encontrada. Asegúrate de crearla en Appwrite.`);
+          return []
+        }
+        throw err
+      }
     }
   )
 

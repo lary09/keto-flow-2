@@ -4,6 +4,10 @@ export const APPWRITE_PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID |
 export const APPWRITE_ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || "https://nyc.cloud.appwrite.io/v1";
 export const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || "main";
 
+if (!process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID) {
+  console.warn('NEXT_PUBLIC_APPWRITE_DATABASE_ID no está definido en .env, usando "main" por defecto.');
+}
+
 export const COLLECTIONS = {
   USER_PROFILES: "user_profiles",
   MEAL_LOGS: "meal_logs",
