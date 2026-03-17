@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Edamam Recipe Search API
     // type=public search for recipes
     // health=keto-friendly for automatic keto filtering
-    const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${appId}&app_key=${appKey}&health=keto-friendly&lang=es`;
+    const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(query)}&app_id=${appId}&app_key=${appKey}&health=keto-friendly&lang=es&random=true`;
 
     const response = await fetch(url);
 

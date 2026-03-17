@@ -81,12 +81,15 @@ export default function RecipesPage() {
     }
   }
 
-  // Load popular keto recipes on mount
+  // Load popular keto recipes on mount with variety
   useEffect(() => {
     const loadInitialRecipes = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch('/api/recipes/search?query=keto&number=12')
+        const keywords = ['keto', 'low carb', 'cetogenica', 'keto breakfast', 'keto dinner', 'keto snack', 'keto salmon', 'keto avocado']
+        const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)]
+        
+        const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(randomKeyword)}&number=12`)
         if (response.ok) {
           const data = await response.json()
           setRecipes(data.recipes || [])
