@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ recipes: [] });
   }
 
-  const appId = process.env.EDAMAM_RECIPE_APP_ID || process.env.EDAMAM_APP_ID;
-  const appKey = process.env.EDAMAM_RECIPE_APP_KEY || process.env.EDAMAM_APP_KEY;
+  const appId = process.env.EDAMAM_RECIPE_APP_ID;
+  const appKey = process.env.EDAMAM_RECIPE_APP_KEY;
 
   if (!appId || !appKey) {
     return NextResponse.json({ error: 'Edamam recipe credentials not configured' }, { status: 500 });
