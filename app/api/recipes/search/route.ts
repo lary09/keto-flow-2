@@ -27,6 +27,7 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
     {
       "id": "id-unico-generado",
       "title": "Nombre de receta",
+      "imageSearchTerm": "salmon avocado",
       "readyInMinutes": 30,
       "servings": 2,
       "calories": 400,
@@ -70,16 +71,16 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
         
         if (pexelsApiKey) {
            try {
-             // Translate simple ingredients to english for Pexels if needed, but modern Pexels handles Spanish ok.
-             // We just use the first two words of the title to get a broad food picture, or the word 'keto'
-             const searchQuery = encodeURIComponent(recipe.title + " keto meal"); 
-             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=1`, {
+             const searchQuery = encodeURIComponent((recipe.imageSearchTerm || recipe.title) + " food plating"); 
+             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=8`, {
                 headers: { 'Authorization': pexelsApiKey }
              });
              if (pexelsRes.ok) {
                  const pexelsData = await pexelsRes.json();
                  if (pexelsData.photos && pexelsData.photos.length > 0) {
-                     imageUrl = pexelsData.photos[0].src.medium;
+                     // Pick a random photo from the top 8 to avoid repeating identical images
+                     const randomIdx = Math.floor(Math.random() * pexelsData.photos.length);
+                     imageUrl = pexelsData.photos[randomIdx].src.medium;
                  }
              }
            } catch(e) {

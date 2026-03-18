@@ -31,6 +31,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
 {
   "breakfast": {
     "title": "Nombre del desayuno",
+    "imageSearchTerm": "eggs bacon",
     "readyInMinutes": 15,
     "calories": 400,
     "fat": 30,
@@ -40,6 +41,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
   },
   "lunch": {
     "title": "Nombre del almuerzo",
+    "imageSearchTerm": "chicken salad",
     "readyInMinutes": 20,
     "calories": 600,
     "fat": 45,
@@ -49,6 +51,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
   },
   "dinner": {
     "title": "Nombre de la cena",
+    "imageSearchTerm": "steak broccoli",
     "readyInMinutes": 30,
     "calories": 550,
     "fat": 40,
@@ -89,14 +92,15 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
        let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
        if (pexelsApiKey) {
            try {
-             const searchQuery = encodeURIComponent(mealObj.title + " keto " + defaultType); 
-             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=1`, {
+             const searchQuery = encodeURIComponent((mealObj.imageSearchTerm || mealObj.title) + " food plating"); 
+             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=8`, {
                 headers: { 'Authorization': pexelsApiKey }
              });
              if (pexelsRes.ok) {
                  const pexelsData = await pexelsRes.json();
                  if (pexelsData.photos && pexelsData.photos.length > 0) {
-                     imageUrl = pexelsData.photos[0].src.medium;
+                     const randomIdx = Math.floor(Math.random() * pexelsData.photos.length);
+                     imageUrl = pexelsData.photos[randomIdx].src.medium;
                  }
              }
            } catch(e) {}
