@@ -1,144 +1,141 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
-// Simple translation map for common keto ingredients to improve Edamam hits
-const TRANSLATIONS: Record<string, string> = {
-  'huevo': 'egg',
-  'huevos': 'eggs',
-  'aguacate': 'avocado',
-  'tocino': 'bacon',
-  'pollo': 'chicken',
-  'carne': 'meat',
-  'pescado': 'fish',
-  'salmon': 'salmon',
-  'salmón': 'salmon',
-  'atún': 'tuna',
-  'queso': 'cheese',
-  'mantequilla': 'butter',
-  'aceite': 'oil',
-  'oliva': 'olive',
-  'espinaca': 'spinach',
-  'espinacas': 'spinach',
-  'brócoli': 'broccoli',
-  'coliflor': 'cauliflower',
-  'almendras': 'almonds',
-  'nueces': 'walnuts',
-  'carne picada': 'ground beef',
-  'pechuga': 'breast',
-}
+const requestSchema = z.object({
+  ingredients: z.array(z.string()),
+});
 
 export async function POST(request: NextRequest) {
-  const appId = process.env.EDAMAM_RECIPE_APP_ID;
-  const appKey = process.env.EDAMAM_RECIPE_APP_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+  const pexelsApiKey = process.env.PEXELS_API_KEY;
 
-  if (!appId || !appKey) {
-    return NextResponse.json(
-      { error: 'Edamam recipe credentials not configured' },
-      { status: 500 }
-    );
+  if (!groqApiKey) {
+    return NextResponse.json({ error: 'GROQ_API_KEY no está configurada en el entorno' }, { status: 500 });
   }
 
   try {
     const body = await request.json();
-    const ingredients: string[] = body.ingredients || [];
+    const { ingredients } = requestSchema.parse(body);
 
-    // Translate ingredients to English for better search results
-    const translatedIngredients = ingredients.map(ing => {
-      const lower = ing.toLowerCase().trim();
-      return TRANSLATIONS[lower] || lower;
+    const systemPrompt = `
+Eres un chef experto en la dieta Cetogénica (Keto).
+El usuario quiere recetas basadas principalmente en estos ingredientes que tiene: ${ingredients.join(', ')}.
+
+Genera exactamente 3 recetas keto increíbles:
+1. Un desayuno (breakfast)
+2. Un almuerzo (lunch)
+3. Una cena (dinner)
+
+Deben ser bajas en carbohidratos netos (menos de 15g por receta) y altas en grasas saludables.
+Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
+{
+  "breakfast": {
+    "title": "Nombre del desayuno",
+    "readyInMinutes": 15,
+    "calories": 400,
+    "fat": 30,
+    "protein": 20,
+    "carbs": 5,
+    "ingredients": ["ingrediente 1", "ingrediente 2"]
+  },
+  "lunch": {
+    "title": "Nombre del almuerzo",
+    "readyInMinutes": 20,
+    "calories": 600,
+    "fat": 45,
+    "protein": 35,
+    "carbs": 8,
+    "ingredients": ["ingrediente 1", "ingrediente 2"]
+  },
+  "dinner": {
+    "title": "Nombre de la cena",
+    "readyInMinutes": 30,
+    "calories": 550,
+    "fat": 40,
+    "protein": 30,
+    "carbs": 10,
+    "ingredients": ["ingrediente 1", "ingrediente 2"]
+  }
+}
+`;
+
+    // Fetch from Groq API (Llama-3)
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama3-70b-8192', 
+        messages: [
+          { role: 'system', content: 'You are a JSON-only API. Respond exclusively with valid JSON.' },
+          { role: 'user', content: systemPrompt }
+        ],
+        temperature: 0.2, // Low temp for reliable JSON
+        response_format: { type: 'json_object' }
+      }),
     });
 
-    // Build the ingredient query string (max 3 for better hits)
-    const ingredientQuery = translatedIngredients.slice(0, 3).join(' ');
+    if (!response.ok) {
+        throw new Error(`Groq API error: ${response.status}`);
+    }
 
-    const fetchRecipes = async (keywords: string, retryWithoutIngredients = false) => {
-      const q = retryWithoutIngredients ? keywords : `${keywords} ${ingredientQuery}`;
-      const url = `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(q)}&app_id=${appId}&app_key=${appKey}&health=keto-friendly&random=true&lang=en`;
+    const data = await response.json();
+    const parsedMeals = JSON.parse(data.choices[0].message.content);
 
-      try {
-        const response = await fetch(url);
-        
-        if (response.status === 429) {
-          throw new Error('API_LIMIT_REACHED');
-        }
-
-        if (!response.ok) {
-          console.error(`Edamam API error: ${response.status}`);
-          return [];
-        }
-
-        const data = await response.json();
-        const hits = data.hits || [];
-
-        // If no hits and we haven't retried yet, try a broader search
-        if (hits.length === 0 && !retryWithoutIngredients && ingredientQuery) {
-          console.log(`No hits for "${q}", retrying broad search for "${keywords}"`);
-          return fetchRecipes(keywords, true);
-        }
-
-        return hits.map((hit: any) => {
-          const recipe = hit.recipe;
-          const nutrients = recipe.totalNutrients || {};
-          const servings = recipe.yield || 1;
-
-          return {
-            id: recipe.uri.split('#recipe_')[1] || recipe.uri,
-            title: recipe.label,
-            image: recipe.image,
-            source: recipe.source,
-            servings,
-            readyInMinutes: recipe.totalTime || 30,
-            calories: Math.round(recipe.calories / servings),
-            fat: Math.round((nutrients.FAT?.quantity || 0) / servings),
-            protein: Math.round((nutrients.PROCNT?.quantity || 0) / servings),
-            carbs: Math.round((nutrients.CHOCDF?.quantity || 0) / servings),
-            netCarbs: Math.round(
-              ((nutrients.CHOCDF?.quantity || 0) - (nutrients.FIBTG?.quantity || 0)) / servings
-            ),
-            ingredients: recipe.ingredientLines,
-          };
-        });
-      } catch (error) {
-        if (error instanceof Error && error.message === 'API_LIMIT_REACHED') throw error;
-        console.error('Fetch error:', error);
-        return [];
-      }
+    // Helpet function to add images via Pexels
+    const attachImage = async (mealObj: any, defaultType: string) => {
+       let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+       if (pexelsApiKey) {
+           try {
+             const searchQuery = encodeURIComponent(mealObj.title + " keto " + defaultType); 
+             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=1`, {
+                headers: { 'Authorization': pexelsApiKey }
+             });
+             if (pexelsRes.ok) {
+                 const pexelsData = await pexelsRes.json();
+                 if (pexelsData.photos && pexelsData.photos.length > 0) {
+                     imageUrl = pexelsData.photos[0].src.medium;
+                 }
+             }
+           } catch(e) {}
+       }
+       return {
+         id: `ai_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+         title: mealObj.title,
+         image: imageUrl,
+         readyInMinutes: mealObj.readyInMinutes || 20,
+         calories: Math.round(mealObj.calories),
+         fat: Math.round(mealObj.fat),
+         protein: Math.round(mealObj.protein),
+         carbs: Math.round(mealObj.carbs),
+         ingredients: mealObj.ingredients || [],
+       };
     };
 
-    // Sequential fetching to avoid burst limit (Edamam free tier is ~10/min)
-    const breakfastRecipes = await fetchRecipes('keto breakfast');
-    const lunchRecipes = await fetchRecipes('keto lunch');
-    const dinnerRecipes = await fetchRecipes('keto dinner');
+    const breakfast = await attachImage(parsedMeals.breakfast, 'breakfast');
+    const lunch = await attachImage(parsedMeals.lunch, 'lunch');
+    const dinner = await attachImage(parsedMeals.dinner, 'dinner');
 
+    // Duplicate recipes across 7 days to match UI expectations
     const weekPlan = Array.from({ length: 7 }, (_, dayIndex) => ({
       day: dayIndex,
-      breakfast: breakfastRecipes[dayIndex % (breakfastRecipes.length || 1)] || null,
-      lunch: lunchRecipes[dayIndex % (lunchRecipes.length || 1)] || null,
-      dinner: dinnerRecipes[dayIndex % (dinnerRecipes.length || 1)] || null,
+      breakfast: breakfast,
+      lunch: lunch,
+      dinner: dinner,
     }));
 
     return NextResponse.json({
       plan: weekPlan,
-      totalRecipes: {
-        breakfast: breakfastRecipes.length,
-        lunch: lunchRecipes.length,
-        dinner: dinnerRecipes.length,
-      },
+      totalRecipes: { breakfast: 1, lunch: 1, dinner: 1 },
     });
-  } catch (error) {
-    if (error instanceof Error && error.message === 'API_LIMIT_REACHED') {
-      return NextResponse.json(
-        { error: 'Límite de búsqueda alcanzado. Por favor, espera 1 minuto e inténtalo de nuevo.', code: 'RATE_LIMIT' },
-        { status: 429 }
-      );
-    }
 
-    console.error('Meal plan generation error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to generate meal plan',
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Error in Groq meal plan generation:', error);
+    return NextResponse.json({ 
+      error: 'Error al generar el plan', 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }

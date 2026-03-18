@@ -35,7 +35,7 @@ export function MacroRing({
   showPercentage = false,
 }: MacroRingProps) {
   const config = sizeConfig[size]
-  const percentage = Math.min((value / max) * 100, 100)
+  const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0
   const radius = (config.size - config.strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (percentage / 100) * circumference

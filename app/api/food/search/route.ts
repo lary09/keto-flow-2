@@ -8,11 +8,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ recipes: [] });
   }
 
-  const appId = process.env.EDAMAM_FOOD_APP_ID;
-  const appKey = process.env.EDAMAM_FOOD_APP_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
 
-  if (!appId || !appKey) {
-    return NextResponse.json({ error: 'Edamam credentials not configured' }, { status: 500 });
+  if (!groqApiKey) {
+    return NextResponse.json({ error: 'Falta configurar GROQ_API_KEY en tu .env' }, { status: 500 });
   }
 
   try {
@@ -41,48 +40,71 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ recipes: normalizedLocal, source: 'local' });
       }
     } catch (e) {
-      console.error('Local search failed, falling back to Edamam:', e);
-    }
-    // Edamam Food Database API
-    // Using &lang=es for Spanish results
-    const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${appId}&app_key=${appKey}&ingr=${encodeURIComponent(query)}&lang=es`;
-
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Edamam API error: ${response.status}`);
+      console.warn('Local search failed, falling back to LLM:', e);
     }
 
-    const data = await response.json();
+    // 2. Fallback to LLM for Food Parsing
+    const systemPrompt = `Actúa como una base de datos nutricional Keto. El usuario busca información nutricional para: "${query}".
+Devuelve entre 3 y 5 opciones o variantes realistas de este alimento (por ejemplo, cocido, crudo, frito, o diferentes marcas comunes).
+Los macros deben ser precisos y calculados por cada 100g o por una porción normal (especifícalo en brand o categoría si quieres).
+Devuelve ÚNICAMENTE un JSON con esta estructura exacta:
+{
+  "foods": [
+    {
+      "id": "generar-un-id-unico",
+      "title": "Nombre del alimento",
+      "brand": "Genérico",
+      "category": "Generic foods",
+      "calories": 160,
+      "fat": 15,
+      "protein": 2,
+      "carbs": 9,
+      "netCarbs": 2,
+      "image": "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=80"
+    }
+  ]
+}`;
+
+    const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama3-70b-8192', 
+        messages: [{ role: 'system', content: 'Solo devuelves JSON válido, sin formato adicional.' }, { role: 'user', content: systemPrompt }],
+        temperature: 0.1,
+        response_format: { type: 'json_object' }
+      }),
+    });
+
+    if (!aiRes.ok) {
+      throw new Error(`Groq API error: ${aiRes.status}`);
+    }
+
+    const data = await aiRes.json();
+    const resultJson = JSON.parse(data.choices[0].message.content);
     
-    // Normalize Edamam response to match our UI expectations
-    const normalizedFoods = (data.hints || []).map((hint: any) => {
-      const food = hint.food;
-      const nutrients = food.nutrients || {};
-
-      // Proteins, Fats, and Carbs are usually per 100g or per serving in Edamam
-      return {
-        id: food.foodId,
-        title: food.label,
+    // Normalize to match expectation (the UI expects 'recipes' array for food search too)
+    const normalizedFoods = (resultJson.foods || []).map((food: any) => ({
+        id: food.id,
+        title: food.title,
         brand: food.brand || '',
         category: food.category,
-        calories: Math.round(nutrients.ENERC_KCAL || 0),
-        fat: parseFloat((nutrients.FAT || 0).toFixed(1)),
-        protein: parseFloat((nutrients.PROCNT || 0).toFixed(1)),
-        carbs: parseFloat((nutrients.CHOCDF || 0).toFixed(1)),
-        netCarbs: parseFloat(((nutrients.CHOCDF || 0) - (nutrients.FIBTG || 0)).toFixed(1)), // Carbs - Fiber
+        calories: Math.round(food.calories || 0),
+        fat: parseFloat((food.fat || 0).toFixed(1)),
+        protein: parseFloat((food.protein || 0).toFixed(1)),
+        carbs: parseFloat((food.carbs || 0).toFixed(1)),
+        netCarbs: parseFloat((food.netCarbs || 0).toFixed(1)),
         image: food.image,
-      };
-    });
+    }));
 
-    return NextResponse.json({ 
-      recipes: normalizedFoods,
-      _debug: normalizedFoods.length === 0 ? data : undefined
-    });
+    return NextResponse.json({ recipes: normalizedFoods });
   } catch (error) {
-    console.error('Edamam search error:', error);
+    console.error('LLM search error:', error);
     return NextResponse.json({ 
-      error: 'Failed to search food', 
+      error: 'Failed to search food via LLM', 
       details: error instanceof Error ? error.message : String(error) 
     }, { status: 500 });
   }

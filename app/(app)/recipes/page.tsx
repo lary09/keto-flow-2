@@ -81,15 +81,53 @@ export default function RecipesPage() {
     }
   }
 
-  // Load popular keto recipes on mount with variety
+  // Load popular keto recipes on mount with variety (Organic Cache first, then fallback to AI)
   useEffect(() => {
     const loadInitialRecipes = async () => {
       setIsLoading(true)
+      
+      // 1. Try Organic Cache to avoid AI latency and save tokens
+      try {
+        const organicResponse = await databases.listDocuments(
+          APPWRITE_DATABASE_ID,
+          COLLECTIONS.SAVED_RECIPES,
+          [Query.limit(10), Query.orderDesc('$createdAt')]
+        )
+
+        if (organicResponse.documents && organicResponse.documents.length > 0) {
+           const cachedRecipes = organicResponse.documents.map((doc: any) => ({
+              id: doc.recipeId || doc.$id,
+              title: doc.title,
+              image: doc.image,
+              readyInMinutes: doc.readyInMinutes || 30,
+              servings: doc.servings || 2,
+              calories: doc.calories,
+              fat: doc.fat,
+              protein: doc.protein,
+              carbs: doc.carbs,
+              netCarbs: doc.carbs,
+              ingredients: doc.ingredients ? JSON.parse(doc.ingredients) : []
+           }))
+           
+           // Remove duplicates by ID and take 12 max
+           const uniqueOrganic = Array.from(new Map(cachedRecipes.map(item => [item.id, item])).values()).slice(0, 12)
+           
+           if (uniqueOrganic.length >= 4) { // Only use cache if we have a decent amount of recipes
+              setRecipes(uniqueOrganic as Recipe[])
+              setIsLoading(false)
+              return // Stop here, instant load successful!
+           }
+        }
+      } catch (err) {
+        console.warn('No se pudo acceder a la caché orgánica, procediendo con IA:', err)
+      }
+
+      // 2. Fallback to AI (Llama-3 + Pexels)
       try {
         const keywords = ['keto', 'low carb', 'cetogenica', 'keto breakfast', 'keto dinner', 'keto snack', 'keto salmon', 'keto avocado']
         const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)]
         
-        const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(randomKeyword)}&number=12`)
+        const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(randomKeyword)}`)
         if (response.ok) {
           const data = await response.json()
           setRecipes(data.recipes || [])

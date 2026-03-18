@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Sparkles, Refrigerator, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Apple, Wand2, Sparkles, Refrigerator, RefreshCw } from 'lucide-react'
 import { FoodLogDialog } from '@/components/food-log-dialog'
+import { PantryDialog } from '@/components/pantry-dialog'
 import { MealPlanCard } from '@/components/meal-plan-card'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -50,6 +51,7 @@ export default function MealPlannerPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [logDialogOpen, setLogDialogOpen] = useState(false)
+  const [pantryDialogOpen, setPantryDialogOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState<MealLog['mealType']>('breakfast')
 
   // Auto meal plan state
@@ -144,14 +146,20 @@ export default function MealPlannerPage() {
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Planificador</h1>
           <p className="text-sm text-muted-foreground">Tu plan semanal keto automático</p>
         </div>
-        <Button variant="outline" size="sm" onClick={goToToday}>
-          Hoy
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={goToToday}>
+            Hoy
+          </Button>
+          <Button size="sm" className="bg-primary text-primary-foreground" onClick={() => setPantryDialogOpen(true)}>
+            <Wand2 className="w-4 h-4 mr-2" />
+            Generar con Despensa
+          </Button>
+        </div>
       </div>
 
       {/* Week Navigation */}
@@ -370,6 +378,13 @@ export default function MealPlannerPage() {
         open={logDialogOpen}
         onOpenChange={setLogDialogOpen}
         mealType={selectedMealType}
+        date={dateString}
+      />
+
+      {/* Pantry Dialog */}
+      <PantryDialog
+        open={pantryDialogOpen}
+        onOpenChange={setPantryDialogOpen}
         date={dateString}
       />
     </div>
