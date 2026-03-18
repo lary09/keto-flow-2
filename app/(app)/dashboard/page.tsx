@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const [selectedMealType, setSelectedMealType] = useState<MealLog['mealType']>('breakfast')
   
   const dateString = format(selectedDate, 'yyyy-MM-dd')
-  const { logs, mealsByType, totals, isLoading, deleteMealLog } = useMealLogs(dateString)
+  const { logs, mealsByType, totals, isLoading, deleteMealLog, error } = useMealLogs(dateString)
 
   const goals = {
     calories: profile?.dailyCalorieGoal || 2000,
