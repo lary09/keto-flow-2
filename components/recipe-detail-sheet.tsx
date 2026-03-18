@@ -34,6 +34,7 @@ interface Recipe {
   source?: string
   instructions?: string[]
   ingredientLines?: string[]
+  ingredients?: string[]
 }
 
 interface RecipeDetail extends Recipe {
@@ -150,7 +151,7 @@ export function RecipeDetailSheet({
               </span>
               <span className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                {recipe.servings} porciones
+                {data.servings || recipe.servings || 2} porciones
               </span>
             </div>
 
@@ -242,11 +243,11 @@ export function RecipeDetailSheet({
             )}
 
             {/* Ingredients */}
-            {data.ingredientLines && (
+            {(data.ingredientLines || data.ingredients) && (
               <div className="mt-4">
                 <h3 className="mb-3 font-semibold text-foreground">Ingredientes</h3>
                 <ul className="space-y-2">
-                  {data.ingredientLines.map((line, idx) => (
+                  {(data.ingredientLines || data.ingredients)?.map((line: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       <span className="text-foreground">{line}</span>
