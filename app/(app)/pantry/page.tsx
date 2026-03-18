@@ -200,7 +200,7 @@ export default function PantryPage() {
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
             Sugerencias Keto — toca para añadir
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex overflow-x-auto pb-2 -mx-4 px-4 gap-2 no-scrollbar snap-x">
             {availableSuggestions.map((s) => {
               const config = categoryConfig[s.category]
               return (
