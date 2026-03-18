@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface MealPlanRecipe {
   id: string
@@ -17,9 +18,10 @@ interface MealPlanRecipe {
 interface MealPlanCardProps {
   recipe: MealPlanRecipe | null
   mealLabel: string
+  onClick?: () => void
 }
 
-export function MealPlanCard({ recipe, mealLabel }: MealPlanCardProps) {
+export function MealPlanCard({ recipe, mealLabel, onClick }: MealPlanCardProps) {
   if (!recipe) {
     return (
       <Card className="overflow-hidden border-dashed opacity-60">
@@ -31,7 +33,10 @@ export function MealPlanCard({ recipe, mealLabel }: MealPlanCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md group">
+    <Card 
+      className={cn("overflow-hidden transition-shadow hover:shadow-md group flex-1", onClick && "cursor-pointer")}
+      onClick={onClick}
+    >
       <div className="flex gap-3 p-3">
         {/* Image */}
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg">

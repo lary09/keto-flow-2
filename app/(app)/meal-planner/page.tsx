@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Apple, Wand2, Spark
 import { FoodLogDialog } from '@/components/food-log-dialog'
 import { PantryDialog } from '@/components/pantry-dialog'
 import { MealPlanCard } from '@/components/meal-plan-card'
+import { RecipeDetailSheet } from '@/components/recipe-detail-sheet'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -53,6 +54,8 @@ export default function MealPlannerPage() {
   const [logDialogOpen, setLogDialogOpen] = useState(false)
   const [pantryDialogOpen, setPantryDialogOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState<MealLog['mealType']>('breakfast')
+  const [selectedRecipe, setSelectedRecipe] = useState<PlannedRecipe | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Auto meal plan state
   const [weekPlan, setWeekPlan] = useState<DayPlan[] | null>(null)
@@ -310,9 +313,21 @@ export default function MealPlannerPage() {
 
           {/* Meal cards */}
           <div className="space-y-3">
-            <MealPlanCard recipe={currentDayPlan.breakfast} mealLabel="☀️ Desayuno" />
-            <MealPlanCard recipe={currentDayPlan.lunch} mealLabel="🌤️ Almuerzo" />
-            <MealPlanCard recipe={currentDayPlan.dinner} mealLabel="🌙 Cena" />
+            <MealPlanCard 
+              recipe={currentDayPlan.breakfast} 
+              mealLabel="☀️ Desayuno" 
+              onClick={() => { setSelectedRecipe(currentDayPlan.breakfast!); setSheetOpen(true); }}
+            />
+            <MealPlanCard 
+              recipe={currentDayPlan.lunch} 
+              mealLabel="🌤️ Almuerzo" 
+              onClick={() => { setSelectedRecipe(currentDayPlan.lunch!); setSheetOpen(true); }}
+            />
+            <MealPlanCard 
+              recipe={currentDayPlan.dinner} 
+              mealLabel="🌙 Cena" 
+              onClick={() => { setSelectedRecipe(currentDayPlan.dinner!); setSheetOpen(true); }}
+            />
           </div>
         </div>
       )}
@@ -385,6 +400,18 @@ export default function MealPlannerPage() {
       <PantryDialog
         open={pantryDialogOpen}
         onOpenChange={setPantryDialogOpen}
+        date={dateString}
+      />
+
+      {/* Recipe Detail Sheet */}
+      <RecipeDetailSheet
+        recipe={selectedRecipe as any}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        isSaved={false}
+        onToggleSave={() => {
+          toast.info('Para guardar recetas como favoritas, búscalas en la sección de Recetas.');
+        }}
         date={dateString}
       />
     </div>

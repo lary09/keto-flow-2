@@ -46,6 +46,7 @@ interface RecipeDetailSheetProps {
   onOpenChange: (open: boolean) => void
   isSaved: boolean
   onToggleSave: () => void
+  date?: string
 }
 
 export function RecipeDetailSheet({
@@ -54,13 +55,14 @@ export function RecipeDetailSheet({
   onOpenChange,
   isSaved,
   onToggleSave,
+  date,
 }: RecipeDetailSheetProps) {
   const { user } = useAuth()
   const [detail, setDetail] = useState<RecipeDetail | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [addingToMeal, setAddingToMeal] = useState(false)
-  const today = new Date().toISOString().split('T')[0]
-  const { addMealLog } = useMealLogs(today)
+  const targetDate = date || new Date().toISOString().split('T')[0]
+  const { addMealLog } = useMealLogs(targetDate)
 
   useEffect(() => {
     if (!recipe || !open) {
@@ -97,7 +99,7 @@ export function RecipeDetailSheet({
     try {
       const data = detail || recipe
       await addMealLog({
-        date: today,
+        date: targetDate,
         mealType,
         foodName: recipe.title,
         calories: Math.round(data.calories),
@@ -212,7 +214,9 @@ export function RecipeDetailSheet({
 
             {/* Add to Meal */}
             <div className="mt-4">
-              <p className="mb-2 text-sm font-medium text-foreground">Añadir a la comida de hoy:</p>
+              <p className="mb-2 text-sm font-medium text-foreground">
+                Añadir a las comidas del {targetDate.split('-').reverse().join('/')}:
+              </p>
               <div className="flex flex-wrap gap-2">
                 {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((mealType) => (
                   <Button
