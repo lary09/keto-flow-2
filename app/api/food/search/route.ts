@@ -72,7 +72,7 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192', 
+        model: 'llama-3.3-70b-versatile', 
         messages: [{ role: 'system', content: 'Solo devuelves JSON válido, sin formato adicional.' }, { role: 'user', content: systemPrompt }],
         temperature: 0.1,
         response_format: { type: 'json_object' }

@@ -67,7 +67,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192', 
+        model: 'llama-3.3-70b-versatile', 
         messages: [
           { role: 'system', content: 'You are a JSON-only API. Respond exclusively with valid JSON.' },
           { role: 'user', content: systemPrompt }

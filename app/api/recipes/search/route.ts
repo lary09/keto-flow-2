@@ -47,14 +47,18 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192', 
+        model: 'llama-3.3-70b-versatile', 
         messages: [{ role: 'system', content: 'Solo devuelves JSON.' }, { role: 'user', content: systemPrompt }],
         temperature: 0.3,
         response_format: { type: 'json_object' }
       }),
     });
 
-    if (!aiRes.ok) throw new Error(`Groq API Error: ${aiRes.status}`);
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error("GROQ_RAW:", errText);
+      throw new Error(`Groq API Error: ${aiRes.status} - ${errText}`);
+    }
     
     const data = await aiRes.json();
     const resultJson = JSON.parse(data.choices[0].message.content);

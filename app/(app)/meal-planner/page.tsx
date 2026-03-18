@@ -11,10 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Apple, Wand2, Sparkles, Refrigerator, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Coffee, Sun, Moon, Apple } from 'lucide-react'
 import { FoodLogDialog } from '@/components/food-log-dialog'
-import { PantryDialog } from '@/components/pantry-dialog'
-import { MealPlanCard } from '@/components/meal-plan-card'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -326,7 +324,7 @@ export default function MealPlannerPage() {
           {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((mealType) => {
             const meals = mealsByType[mealType]
             if (meals.length === 0) return null
-            const config = mealType === 'snack' 
+            const config = mealType === 'snack'
               ? { icon: Plus, label: 'Snack' }
               : mealTypeConfig[mealType]
 
