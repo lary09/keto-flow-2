@@ -23,50 +23,51 @@ El usuario quiere recetas basadas principalmente en estos ingredientes que tiene
 
 IMPORTANTE: Todos los textos (títulos, ingredientes, instrucciones) deben generarse obligatoriamente en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés.
 
-Genera exactamente 3 recetas keto increíbles:
-1. Un desayuno (breakfast)
-2. Un almuerzo (lunch)
-3. Una cena (dinner)
-
+Genera un plan de 7 días con recetas keto variadas.
 Deben ser bajas en carbohidratos netos (menos de 15g por receta) y altas en grasas saludables.
 Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
 {
-  "breakfast": {
-    "title": "Nombre del desayuno",
-    "imageSearchTerm": "eggs bacon",
-    "readyInMinutes": 15,
-    "servings": 2,
-    "calories": 400,
-    "fat": 30,
-    "protein": 20,
-    "carbs": 5,
-    "ingredients": ["ingrediente 1"],
-    "instructions": ["Paso 1", "Paso 2"]
-  },
-  "lunch": {
-    "title": "Nombre del almuerzo",
-    "imageSearchTerm": "chicken salad",
-    "readyInMinutes": 20,
-    "servings": 2,
-    "calories": 600,
-    "fat": 45,
-    "protein": 35,
-    "carbs": 8,
-    "ingredients": ["ingrediente 1"],
-    "instructions": ["Paso 1", "Paso 2"]
-  },
-  "dinner": {
-    "title": "Nombre de la cena",
-    "imageSearchTerm": "steak broccoli",
-    "readyInMinutes": 30,
-    "servings": 2,
-    "calories": 550,
-    "fat": 40,
-    "protein": 30,
-    "carbs": 10,
-    "ingredients": ["ingrediente 1"],
-    "instructions": ["Paso 1", "Paso 2"]
-  }
+  "days": [
+    {
+      "day": 0,
+      "breakfast": {
+        "title": "Nombre del desayuno",
+        "imageSearchTerm": "eggs bacon",
+        "readyInMinutes": 15,
+        "servings": 2,
+        "calories": 400,
+        "fat": 30,
+        "protein": 20,
+        "carbs": 5,
+        "ingredients": ["ingrediente 1"],
+        "instructions": ["Paso 1", "Paso 2"]
+      },
+      "lunch": {
+        "title": "Nombre del almuerzo",
+        "imageSearchTerm": "chicken salad",
+        "readyInMinutes": 20,
+        "servings": 2,
+        "calories": 600,
+        "fat": 45,
+        "protein": 35,
+        "carbs": 8,
+        "ingredients": ["ingrediente 1"],
+        "instructions": ["Paso 1", "Paso 2"]
+      },
+      "dinner": {
+        "title": "Nombre de la cena",
+        "imageSearchTerm": "steak broccoli",
+        "readyInMinutes": 30,
+        "servings": 2,
+        "calories": 550,
+        "fat": 40,
+        "protein": 30,
+        "carbs": 10,
+        "ingredients": ["ingrediente 1"],
+        "instructions": ["Paso 1", "Paso 2"]
+      }
+    }
+  ]
 }
 `;
 
@@ -129,21 +130,25 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
        };
     };
 
-    const breakfast = await attachImage(parsedMeals.breakfast, 'breakfast');
-    const lunch = await attachImage(parsedMeals.lunch, 'lunch');
-    const dinner = await attachImage(parsedMeals.dinner, 'dinner');
+    const daysArray = parsedMeals.days || [];
+    
+    const weekPlanPromises = daysArray.map(async (dayData: any) => {
+      const b = await attachImage(dayData.breakfast, 'breakfast');
+      const l = await attachImage(dayData.lunch, 'lunch');
+      const d = await attachImage(dayData.dinner, 'dinner');
+      return {
+        day: dayData.day,
+        breakfast: b,
+        lunch: l,
+        dinner: d,
+      };
+    });
 
-    // Duplicate recipes across 7 days to match UI expectations
-    const weekPlan = Array.from({ length: 7 }, (_, dayIndex) => ({
-      day: dayIndex,
-      breakfast: breakfast,
-      lunch: lunch,
-      dinner: dinner,
-    }));
+    const weekPlan = await Promise.all(weekPlanPromises);
 
     return NextResponse.json({
       plan: weekPlan,
-      totalRecipes: { breakfast: 1, lunch: 1, dinner: 1 },
+      totalRecipes: { breakfast: 7, lunch: 7, dinner: 7 },
     });
 
   } catch (error) {

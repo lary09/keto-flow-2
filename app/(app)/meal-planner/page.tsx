@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/contexts/auth-context'
@@ -61,6 +61,22 @@ export default function MealPlannerPage() {
   const [weekPlan, setWeekPlan] = useState<DayPlan[] | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('keto-flow-week-plan')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.plan) {
+           setWeekPlan(parsed.plan)
+           setHasGenerated(true)
+        }
+      } catch (e) {
+        console.error("Error reading saved plan", e)
+      }
+    }
+  }, [])
 
   const dateString = format(selectedDate, 'yyyy-MM-dd')
   const { mealsByType, totals, isLoading: logsLoading } = useMealLogs(dateString)
@@ -134,6 +150,7 @@ export default function MealPlannerPage() {
 
       setWeekPlan(data.plan)
       setHasGenerated(true)
+      localStorage.setItem('keto-flow-week-plan', JSON.stringify({ plan: data.plan, generatedAt: new Date().toISOString() }))
       toast.success('¡Plan semanal generado! 🎉')
     } catch (error) {
       console.error('Error generating plan:', error)
@@ -189,7 +206,7 @@ export default function MealPlannerPage() {
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  'flex min-w-[56px] flex-col items-center rounded-xl border-2 px-3 py-2 transition-colors',
+                  'relative flex min-w-[56px] flex-col items-center rounded-xl border-2 px-3 py-2 pb-3 transition-colors',
                   isSelected
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-card hover:border-primary/50',
@@ -199,11 +216,11 @@ export default function MealPlannerPage() {
                 <span className={cn('text-xs', isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
                   {format(day, 'EEE', { locale: es })}
                 </span>
-                <span className={cn('text-lg font-bold', !isSelected && 'text-foreground')}>
+                <span className={cn('text-lg font-bold leading-none mt-1', !isSelected && 'text-foreground')}>
                   {format(day, 'd')}
                 </span>
                 {isDayToday && (
-                  <span className={cn('h-1 w-1 rounded-full', isSelected ? 'bg-primary-foreground' : 'bg-primary')} />
+                  <span className={cn('absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full', isSelected ? 'bg-primary-foreground' : 'bg-primary')} />
                 )}
               </button>
             )
@@ -217,7 +234,7 @@ export default function MealPlannerPage() {
         <Button
           onClick={handleGeneratePlan}
           disabled={isGenerating}
-          className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-bold py-6 rounded-xl shadow-lg transition-all active:scale-[0.98]"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl shadow-md transition-all active:scale-[0.98] border border-primary/20"
           size="lg"
         >
           {isGenerating ? (

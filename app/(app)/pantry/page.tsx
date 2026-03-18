@@ -208,8 +208,8 @@ export default function PantryPage() {
                   key={s.name}
                   onClick={() => handleQuickAdd(s.name, s.category)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
-                    'border-border hover:border-primary/50 hover:bg-primary/5 active:scale-95'
+                    'inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition-all',
+                    'bg-card text-foreground border-border hover:border-primary/50 hover:bg-primary/5 hover:scale-105 active:scale-95'
                   )}
                 >
                   <config.icon className={cn('h-3 w-3', config.color)} />
@@ -254,38 +254,33 @@ export default function PantryPage() {
               if (categoryItems.length === 0) return null
 
               return (
-                <Card key={categoryKey} className="overflow-hidden">
-                  <CardHeader className={cn('pb-2', config.bgColor)}>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <config.icon className={cn('h-4 w-4', config.color)} />
-                      <span>{config.label}</span>
-                      <Badge variant="outline" className="ml-auto text-[10px]">
-                        {categoryItems.length}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-3">
-                    <div className="flex flex-wrap gap-2">
-                      {categoryItems.map((item) => (
-                        <span
-                          key={item.$id}
-                          className={cn(
-                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium',
-                            'bg-card border-border group'
-                          )}
-                        >
-                          {item.name}
-                          <button
-                            onClick={() => handleRemove(item)}
-                            className="ml-0.5 rounded-full p-0.5 opacity-40 hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
+                <div key={categoryKey} className={cn("flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:shadow-sm", config.bgColor)}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("rounded-xl p-2 bg-background shadow-xs", config.color)}>
+                      <config.icon className="h-4 w-4" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <span className="font-bold text-sm text-foreground">{config.label}</span>
+                    <Badge variant="secondary" className="ml-auto bg-background/80 shadow-xs border-0">
+                      {categoryItems.length}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {categoryItems.map((item) => (
+                      <span
+                        key={item.$id}
+                        className="group flex items-center gap-1.5 rounded-full bg-background border border-border/50 px-3 py-1.5 text-sm font-medium text-foreground shadow-xs transition-colors hover:border-destructive/30"
+                      >
+                        {item.name}
+                        <button
+                          onClick={() => handleRemove(item)}
+                          className="ml-0.5 rounded-full p-0.5 text-muted-foreground transition-all hover:bg-destructive hover:text-destructive-foreground focus:outline-hidden"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )
             }
           )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/contexts/auth-context'
@@ -9,11 +9,14 @@ import { MacroRing } from '@/components/macro-ring'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2, Database } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2, Database, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { FoodLogDialog } from '@/components/food-log-dialog'
+import { MealPlanCard } from '@/components/meal-plan-card'
+import { RecipeDetailSheet } from '@/components/recipe-detail-sheet'
 import { toast } from 'sonner'
 import type { MealLog } from '@/lib/appwrite'
+import { startOfWeek, addDays, isSameDay } from 'date-fns'
 
 const mealTypeConfig = {
   breakfast: { icon: Coffee, label: 'Desayuno', color: 'bg-amber-100 text-amber-700' },
@@ -27,6 +30,9 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [logDialogOpen, setLogDialogOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState<MealLog['mealType']>('breakfast')
+  const [suggestedPlan, setSuggestedPlan] = useState<any>(null)
+  const [selectedRecipe, setSelectedRecipe] = useState<any>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   
   const dateString = format(selectedDate, 'yyyy-MM-dd')
   const { logs, mealsByType, totals, isLoading, deleteMealLog, error } = useMealLogs(dateString)
@@ -37,6 +43,30 @@ export default function DashboardPage() {
     protein: profile?.dailyProteinGoal || 100,
     carbs: profile?.dailyCarbGoal || 25,
   }
+
+  // Load auto-generated plan for the selected day
+  useEffect(() => {
+    const saved = localStorage.getItem('keto-flow-week-plan')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.plan) {
+          const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+          const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+          const dayIndex = weekDays.findIndex((d) => isSameDay(d, selectedDate))
+          if (dayIndex !== -1 && parsed.plan[dayIndex]) {
+            setSuggestedPlan(parsed.plan[dayIndex])
+          } else {
+            setSuggestedPlan(null)
+          }
+        }
+      } catch (e) {
+        console.error("Error reading saved plan on dashboard", e)
+      }
+    } else {
+      setSuggestedPlan(null)
+    }
+  }, [selectedDate])
 
   const goToPrevDay = () => {
     const newDate = new Date(selectedDate)
@@ -185,6 +215,35 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Suggested Auto-Plan */}
+      {suggestedPlan && (
+        <div className="space-y-3 mt-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Plan Sugerido
+            </h2>
+          </div>
+          <div className="space-y-3">
+            <MealPlanCard 
+              recipe={suggestedPlan.breakfast} 
+              mealLabel="☀️ Desayuno" 
+              onClick={() => { setSelectedRecipe(suggestedPlan.breakfast); setSheetOpen(true); }}
+            />
+            <MealPlanCard 
+              recipe={suggestedPlan.lunch} 
+              mealLabel="🌤️ Almuerzo" 
+              onClick={() => { setSelectedRecipe(suggestedPlan.lunch); setSheetOpen(true); }}
+            />
+            <MealPlanCard 
+              recipe={suggestedPlan.dinner} 
+              mealLabel="🌙 Cena" 
+              onClick={() => { setSelectedRecipe(suggestedPlan.dinner); setSheetOpen(true); }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Meals */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -283,6 +342,16 @@ export default function DashboardPage() {
         open={logDialogOpen}
         onOpenChange={setLogDialogOpen}
         mealType={selectedMealType}
+        date={dateString}
+      />
+
+      {/* Recipe Detail Sheet for Suggested Meals */}
+      <RecipeDetailSheet
+        recipe={selectedRecipe}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        isSaved={false}
+        onToggleSave={() => toast.info('Para guardar recetas, usa la sección Recetas.')}
         date={dateString}
       />
     </div>
