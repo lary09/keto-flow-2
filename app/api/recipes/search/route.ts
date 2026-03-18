@@ -19,18 +19,19 @@ export async function GET(request: NextRequest) {
   try {
     // 1. LLM Generation
     const systemPrompt = `Genera 12 excelentes recetas de dieta Cetogénica (Keto) basadas en la búsqueda: "${query}".
-Estas recetas no existen en una base de datos, así que diséñalas con macros calculados realísticamente.
-Estrictamente cada receta debe tener un alto contenido de grasa y menos de 15g de carbohidratos netos (netCarbs).
+Estas recetas no deben ser básicas ni genéricas. Como experto culinario, diseña platillos visualmente hermosos y de sabor premium (Agentic Creativity), manteniendo estrictamente un alto contenido de grasa y menos de 15g de carbohidratos netos (netCarbs).
 
-IMPORTANTE: Todos los textos (títulos, ingredientes, instrucciones) deben generarse obligatoriamente en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés.
+IMPORTANTE: Todos los textos deben generarse en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés literal para la API fotográfica (usa ingredientes, no platos). EJEMPLO: "grilled salmon slices", "roasted broccoli cheese". NUNCA uses la palabra "keto" o "recipe" en imageSearchTerm.
 
+Usa pensamiento lógico (Chain of Thought): Escribe primero en la propiedad "reasoning" por qué elegiste estas recetas y cómo garantizas el estándar gourmet.
 Devuelve ÚNICAMENTE un JSON con la estructura exacta:
 {
+  "reasoning": "Elegí ingredientes frescos con alto contraste de texturas...",
   "recipes": [
     {
       "id": "id-unico-generado",
-      "title": "Nombre de receta",
-      "imageSearchTerm": "salmon avocado",
+      "title": "Nombre de receta (Elegante)",
+      "imageSearchTerm": "ingredient 1 ingredient 2 close up",
       "readyInMinutes": 30,
       "servings": 2,
       "calories": 400,
@@ -75,16 +76,19 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
         
         if (pexelsApiKey) {
            try {
-             const searchQuery = encodeURIComponent((recipe.imageSearchTerm || recipe.title) + " food plating"); 
-             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=8`, {
+             // Optimize image term for UI/UX Pro Max aesthetic (no people, dark/high contrast plates)
+             const safeTerm = (recipe.imageSearchTerm || "food").replace(/keto|recipe|diet/gi, "").trim();
+             const searchQuery = encodeURIComponent(`${safeTerm} food photography plating`); 
+             const randomPage = Math.floor(Math.random() * 3) + 1; // Pull from different pages to avoid repetition
+             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=10&page=${randomPage}`, {
                 headers: { 'Authorization': pexelsApiKey }
              });
              if (pexelsRes.ok) {
                  const pexelsData = await pexelsRes.json();
                  if (pexelsData.photos && pexelsData.photos.length > 0) {
-                     // Pick a random photo from the top 8 to avoid repeating identical images
+                     // Pick a random photo to avoid repeating identical images
                      const randomIdx = Math.floor(Math.random() * pexelsData.photos.length);
-                     imageUrl = pexelsData.photos[randomIdx].src.medium;
+                     imageUrl = pexelsData.photos[randomIdx].src.large || pexelsData.photos[randomIdx].src.medium;
                  }
              }
            } catch(e) {

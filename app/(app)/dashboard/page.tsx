@@ -153,96 +153,111 @@ export default function DashboardPage() {
       </div>
 
       {/* Greeting */}
-      <div className="rounded-xl bg-primary/10 p-4">
-        <p className="text-lg font-medium text-foreground">
-          ¡Hola, {user?.name?.split(' ')[0] || 'amigo'}!
+      <div className="pt-2">
+        <p className="text-sm font-semibold tracking-wider text-muted-foreground uppercase mb-1">
+          RESUMEN DIARIO
         </p>
-        <p className="text-sm text-muted-foreground">
-          {totals.calories > 0 
-            ? `Has registrado ${Math.round(totals.calories)} calorías hoy.`
-            : 'Empieza a registrar tus comidas para seguir tus macros.'}
-        </p>
+        <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
+          ¡Hola, {user?.name?.split(' ')[0] || 'amigo'}! 👋
+        </h2>
       </div>
 
-      {/* Macro Rings */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Progreso Diario</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-around py-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-20 w-20 rounded-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="flex justify-around py-2">
-              <MacroRing
-                value={totals.fat}
-                max={goals.fat}
-                label="Grasas"
-                unit="g"
-                color="fat"
-                size="sm"
-              />
-              <MacroRing
-                value={totals.protein}
-                max={goals.protein}
-                label="Proteínas"
-                unit="g"
-                color="protein"
-                size="sm"
-              />
-              <MacroRing
-                value={totals.carbs}
-                max={goals.carbs}
-                label="Carbs"
-                unit="g"
-                color="carbs"
-                size="sm"
-              />
-              <MacroRing
-                value={totals.calories}
-                max={goals.calories}
-                label="Calorías"
-                unit="kcal"
-                color="calories"
-                size="sm"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Suggested Auto-Plan */}
+      {/* Suggested Auto-Plan Magazine Cover (UI/UX Pro Max) */}
       {suggestedPlan && (
-        <div className="space-y-3 mt-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Plan Sugerido
-            </h2>
-          </div>
-          <div className="space-y-3">
-            <MealPlanCard 
-              recipe={suggestedPlan.breakfast} 
-              mealLabel="☀️ Desayuno" 
-              onClick={() => { setSelectedRecipe(suggestedPlan.breakfast); setSheetOpen(true); }}
-            />
-            <MealPlanCard 
-              recipe={suggestedPlan.lunch} 
-              mealLabel="🌤️ Almuerzo" 
-              onClick={() => { setSelectedRecipe(suggestedPlan.lunch); setSheetOpen(true); }}
-            />
-            <MealPlanCard 
-              recipe={suggestedPlan.dinner} 
-              mealLabel="🌙 Cena" 
-              onClick={() => { setSelectedRecipe(suggestedPlan.dinner); setSheetOpen(true); }}
-            />
+        <div className="relative overflow-hidden rounded-[2rem] border shadow-2xl group cursor-pointer transition-all hover:shadow-primary/20" onClick={() => { setSelectedRecipe(suggestedPlan.lunch || suggestedPlan.dinner); setSheetOpen(true); }}>
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-60" 
+            style={{ backgroundImage: `url(${suggestedPlan.lunch?.image || suggestedPlan.dinner?.image || suggestedPlan.breakfast?.image})` }} 
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
+          
+          <div className="relative p-6 pt-32 flex flex-col justify-end z-10 w-full h-full">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold text-primary-foreground flex items-center gap-1 shadow-md">
+                <Sparkles className="h-3 w-3" />
+                ELECCIÓN DEL CHEF
+              </span>
+            </div>
+            <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground mb-2 leading-tight drop-shadow-md">
+              {(suggestedPlan.lunch?.title || "Sugerencia del Día")}
+            </h3>
+            <p className="text-foreground/80 font-medium flex items-center gap-3 text-sm sm:text-base mb-5">
+              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">⏳ {suggestedPlan.lunch?.readyInMinutes || 20} min</span>
+              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">🔥 {suggestedPlan.lunch?.calories || 400} kcal</span>
+              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">🥩 {suggestedPlan.lunch?.protein || 20}g Prot</span>
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.breakfast); setSheetOpen(true); }}>
+                Desayuno
+              </Button>
+              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.lunch); setSheetOpen(true); }}>
+                Almuerzo
+              </Button>
+              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.dinner); setSheetOpen(true); }}>
+                Cena
+              </Button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Modern High-Impact Macro Bars */}
+      <div className="rounded-[2rem] bg-card border shadow-sm p-6 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              Progreso de Macros
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Restan <span className="font-bold text-foreground">{Math.max(0, goals.calories - totals.calories)} kcal</span> hoy.
+            </p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-10 w-full rounded-full" />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Grasas */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-orange-500">Grasas</span>
+                <span>{Math.round(totals.fat)}g <span className="text-muted-foreground">/ {goals.fat}g</span></span>
+              </div>
+              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-orange-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.fat / Math.max(1, goals.fat)) * 100)}%` }} />
+              </div>
+            </div>
+            
+            {/* Proteinas */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-primary">Proteínas</span>
+                <span>{Math.round(totals.protein)}g <span className="text-muted-foreground">/ {goals.protein}g</span></span>
+              </div>
+              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.protein / Math.max(1, goals.protein)) * 100)}%` }} />
+              </div>
+            </div>
+
+            {/* Carbohidratos */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-amber-600">Carbs Netos</span>
+                <span>{Math.round(totals.carbs)}g <span className="text-muted-foreground">/ {goals.carbs}g</span></span>
+              </div>
+              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.carbs / Math.max(1, goals.carbs)) * 100)}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Meals */}
       <div className="space-y-4">

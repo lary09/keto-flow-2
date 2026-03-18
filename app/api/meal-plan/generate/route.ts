@@ -18,21 +18,25 @@ export async function POST(request: NextRequest) {
     const { ingredients } = requestSchema.parse(body);
 
     const systemPrompt = `
-Eres un chef experto en la dieta Cetogénica (Keto).
+Eres un chef experto de clase mundial y especialista en Keto.
 El usuario quiere recetas basadas principalmente en estos ingredientes que tiene: ${ingredients.join(', ')}.
 
-IMPORTANTE: Todos los textos (títulos, ingredientes, instrucciones) deben generarse obligatoriamente en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés.
+AGENTIC WORKFLOW: No respondas mecánicamente. Aplica principios de alta cocina (UI/UX Pro Max). Combina texturas, colores y métodos de cocción variados a lo largo de los días para que la semana no sea aburrida. 
+Asegúrate rigurosamente de que CADA RECETA tenga menos de 15g de carbohidratos netos y sea alta en grasas saludables.
 
-Genera un plan de 7 días con recetas keto variadas.
-Deben ser bajas en carbohidratos netos (menos de 15g por receta) y altas en grasas saludables.
+IMPORTANTE: Todos los textos DEBEN estar en ESPAÑOL, excepto imageSearchTerm que debe ser en INGLÉS (sólo ingredientes básicos como "sliced avocado egg", nunca "keto" o "recipe").
+
+Primero, explica tu línea de razonamiento en "reasoning" justificando tu elección de platillos.
+Genera un plan de 7 días.
 Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
 {
+  "reasoning": "El usuario proporcionó X. Diseñaré el día 1 con contrastes ácidos, el día 2 con estofados densos...",
   "days": [
     {
       "day": 0,
       "breakfast": {
-        "title": "Nombre del desayuno",
-        "imageSearchTerm": "eggs bacon",
+        "title": "Huevos Poché sobre Cama de Aguacate",
+        "imageSearchTerm": "poached egg avocado slice",
         "readyInMinutes": 15,
         "servings": 2,
         "calories": 400,
@@ -44,7 +48,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
       },
       "lunch": {
         "title": "Nombre del almuerzo",
-        "imageSearchTerm": "chicken salad",
+        "imageSearchTerm": "chicken breast salad",
         "readyInMinutes": 20,
         "servings": 2,
         "calories": 600,
@@ -56,7 +60,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
       },
       "dinner": {
         "title": "Nombre de la cena",
-        "imageSearchTerm": "steak broccoli",
+        "imageSearchTerm": "steak broccoli roasted",
         "readyInMinutes": 30,
         "servings": 2,
         "calories": 550,
@@ -108,18 +112,21 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
              ingredients: ["Generación interrumpida"], ingredientLines: ["Generación interrumpida"], instructions: ["Por favor, intenta generar el plan nuevamente."]
            };
        }
-       let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+       let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
        if (pexelsApiKey) {
            try {
-             const searchQuery = encodeURIComponent((mealObj.imageSearchTerm || mealObj.title) + " food plating"); 
-             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=8`, {
+             // Avoid human faces, diet text, and pull from randomized pages for variety
+             const safeTerm = (mealObj.imageSearchTerm || mealObj.title || "food").replace(/keto|recipe|diet/gi, "").trim();
+             const searchQuery = encodeURIComponent(`${safeTerm} dark food photography aesthetic plate`); 
+             const randomPage = Math.floor(Math.random() * 4) + 1;
+             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=12&page=${randomPage}`, {
                 headers: { 'Authorization': pexelsApiKey }
              });
              if (pexelsRes.ok) {
                  const pexelsData = await pexelsRes.json();
                  if (pexelsData.photos && pexelsData.photos.length > 0) {
                      const randomIdx = Math.floor(Math.random() * pexelsData.photos.length);
-                     imageUrl = pexelsData.photos[randomIdx].src.medium;
+                     imageUrl = pexelsData.photos[randomIdx].src.large || pexelsData.photos[randomIdx].src.medium;
                  }
              }
            } catch(e) {}
