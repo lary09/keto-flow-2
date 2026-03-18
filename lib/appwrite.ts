@@ -15,6 +15,7 @@ export const COLLECTIONS = {
   SAVED_RECIPES: "saved_recipes",
   COMMUNITY_FOODS: "community_foods",
   WEIGHT_LOGS: "weight_logs",
+  PANTRY_ITEMS: "pantry_items",
 };
 
 const client = new Client()
@@ -104,6 +105,14 @@ export interface CommunityFood {
   protein: number;
   carbs: number;
   servingSize?: string;
+}
+
+export interface PantryItem {
+  $id: string;
+  userId: string;
+  name: string;
+  category: 'proteína' | 'grasa' | 'vegetal' | 'lácteo' | 'otro';
+  $createdAt: string;
 }
 
 export { client, account, databases, ID, Query };

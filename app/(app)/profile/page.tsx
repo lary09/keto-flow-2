@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,11 +11,13 @@ import { Separator } from '@/components/ui/separator'
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Leaf, LogOut, Save } from 'lucide-react'
+import { Leaf, LogOut, Save, Sun, Moon, Monitor } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const { user, profile, logout, updateProfile } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -174,6 +177,39 @@ export default function ProfilePage() {
                 </div>
               )
             })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Theme Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Apariencia</CardTitle>
+          <CardDescription>Elige el tema de la app</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: 'light', icon: Sun, label: 'Claro' },
+              { value: 'dark', icon: Moon, label: 'Oscuro' },
+              { value: 'system', icon: Monitor, label: 'Sistema' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTheme(option.value)}
+                className={cn(
+                  'flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all',
+                  theme === option.value
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/40'
+                )}
+              >
+                <option.icon className={cn('h-5 w-5', theme === option.value ? 'text-primary' : 'text-muted-foreground')} />
+                <span className={cn('text-xs font-medium', theme === option.value ? 'text-primary' : 'text-muted-foreground')}>
+                  {option.label}
+                </span>
+              </button>
+            ))}
           </div>
         </CardContent>
       </Card>
