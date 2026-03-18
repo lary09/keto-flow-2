@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
     const systemPrompt = `Genera 12 excelentes recetas de dieta Cetogénica (Keto) basadas en la búsqueda: "${query}".
 Estas recetas no existen en una base de datos, así que diséñalas con macros calculados realísticamente.
 Estrictamente cada receta debe tener un alto contenido de grasa y menos de 15g de carbohidratos netos (netCarbs).
+
+IMPORTANTE: Todos los textos (títulos, ingredientes, instrucciones) deben generarse obligatoriamente en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés.
+
 Devuelve ÚNICAMENTE un JSON con la estructura exacta:
 {
   "recipes": [
@@ -35,7 +38,8 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
       "protein": 25,
       "carbs": 10,
       "netCarbs": 6,
-      "ingredients": ["ingrediente 1", "ingrediente 2"]
+      "ingredients": ["ingrediente 1"],
+      "instructions": ["Paso 1", "Paso 2"]
     }
   ]
 }

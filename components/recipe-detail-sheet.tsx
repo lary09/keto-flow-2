@@ -32,10 +32,11 @@ interface Recipe {
   netCarbs: number
   url?: string
   source?: string
+  instructions?: string[]
+  ingredientLines?: string[]
 }
 
 interface RecipeDetail extends Recipe {
-  ingredientLines?: string[]
 }
 
 interface RecipeDetailSheetProps {
@@ -116,6 +117,7 @@ export function RecipeDetailSheet({
   }
 
   if (!recipe) return null
+  const data = detail || recipe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -156,25 +158,25 @@ export function RecipeDetailSheet({
             <div className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-muted/50 p-3">
               <div className="text-center">
                 <p className="text-lg font-bold text-foreground">
-                  {Math.round(detail?.calories || recipe.calories || 0)}
+                  {Math.round(data.calories || 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">kcal</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-fat">
-                  {Math.round(detail?.fat || recipe.fat || 0)}g
+                  {Math.round(data.fat || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Grasas</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-protein">
-                  {Math.round(detail?.protein || recipe.protein || 0)}g
+                  {Math.round(data.protein || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Protein</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold text-keto-carbs">
-                  {Math.round(detail?.netCarbs || recipe.netCarbs || 0)}g
+                  {Math.round(data.netCarbs || data.carbs || 0)}g
                 </p>
                 <p className="text-xs text-muted-foreground">Carbs Netos</p>
               </div>
@@ -199,7 +201,7 @@ export function RecipeDetailSheet({
                   </>
                 )}
               </Button>
-              {detail?.ingredientLines && (
+              {data.ingredientLines && (
                 <Button variant="outline" className="flex-1">
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Añadir a la lista
@@ -240,11 +242,11 @@ export function RecipeDetailSheet({
             )}
 
             {/* Ingredients */}
-            {detail?.ingredientLines && (
+            {data.ingredientLines && (
               <div className="mt-4">
                 <h3 className="mb-3 font-semibold text-foreground">Ingredientes</h3>
                 <ul className="space-y-2">
-                  {detail.ingredientLines.map((line, idx) => (
+                  {data.ingredientLines.map((line, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       <span className="text-foreground">{line}</span>
@@ -255,19 +257,19 @@ export function RecipeDetailSheet({
             )}
 
 
-            {/* Source Link */}
-            <div className="mt-6 pb-8">
-              <Button variant="link" className="h-auto p-0" asChild>
-                <a
-                  href={recipe.url || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Ver receta completa en {recipe.source || 'Edamam'}
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </Button>
-            </div>
+            {/* Instructions */}
+            {data.instructions && data.instructions.length > 0 && (
+              <div className="mt-6 pb-8">
+                <h3 className="mb-3 font-semibold text-foreground">Instrucciones</h3>
+                <ol className="space-y-3 list-decimal list-inside text-sm text-foreground">
+                  {data.instructions.map((step, idx) => (
+                    <li key={idx} className="leading-relaxed">
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </SheetContent>

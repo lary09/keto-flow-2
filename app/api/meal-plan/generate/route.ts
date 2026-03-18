@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
 Eres un chef experto en la dieta Cetogénica (Keto).
 El usuario quiere recetas basadas principalmente en estos ingredientes que tiene: ${ingredients.join(', ')}.
 
+IMPORTANTE: Todos los textos (títulos, ingredientes, instrucciones) deben generarse obligatoriamente en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés.
+
 Genera exactamente 3 recetas keto increíbles:
 1. Un desayuno (breakfast)
 2. Un almuerzo (lunch)
@@ -37,7 +39,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
     "fat": 30,
     "protein": 20,
     "carbs": 5,
-    "ingredients": ["ingrediente 1", "ingrediente 2"]
+    "ingredients": ["ingrediente 1"],
+    "instructions": ["Paso 1", "Paso 2"]
   },
   "lunch": {
     "title": "Nombre del almuerzo",
@@ -47,7 +50,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
     "fat": 45,
     "protein": 35,
     "carbs": 8,
-    "ingredients": ["ingrediente 1", "ingrediente 2"]
+    "ingredients": ["ingrediente 1"],
+    "instructions": ["Paso 1", "Paso 2"]
   },
   "dinner": {
     "title": "Nombre de la cena",
@@ -57,7 +61,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
     "fat": 40,
     "protein": 30,
     "carbs": 10,
-    "ingredients": ["ingrediente 1", "ingrediente 2"]
+    "ingredients": ["ingrediente 1"],
+    "instructions": ["Paso 1", "Paso 2"]
   }
 }
 `;
@@ -115,6 +120,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
          protein: Math.round(mealObj.protein),
          carbs: Math.round(mealObj.carbs),
          ingredients: mealObj.ingredients || [],
+         ingredientLines: mealObj.ingredients || [], // Duplicate for backward compatibility with UI
+         instructions: mealObj.instructions || [],
        };
     };
 
