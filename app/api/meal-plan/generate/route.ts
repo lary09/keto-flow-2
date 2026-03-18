@@ -85,6 +85,7 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
           { role: 'user', content: systemPrompt }
         ],
         temperature: 0.2, // Low temp for reliable JSON
+        max_tokens: 6000, 
         response_format: { type: 'json_object' }
       }),
     });
@@ -98,6 +99,15 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
 
     // Helpet function to add images via Pexels
     const attachImage = async (mealObj: any, defaultType: string) => {
+       if (!mealObj) {
+           return {
+             id: `ai_${Date.now()}_err`,
+             title: `Opción de ${defaultType} (Pendiente)`,
+             image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
+             readyInMinutes: 20, servings: 2, calories: 300, fat: 20, protein: 20, carbs: 5,
+             ingredients: ["Generación interrumpida"], ingredientLines: ["Generación interrumpida"], instructions: ["Por favor, intenta generar el plan nuevamente."]
+           };
+       }
        let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
        if (pexelsApiKey) {
            try {
