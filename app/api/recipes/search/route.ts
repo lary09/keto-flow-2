@@ -19,14 +19,18 @@ export async function GET(request: NextRequest) {
   try {
     // 1. LLM Generation
     const systemPrompt = `Genera 12 excelentes recetas de dieta Cetogénica (Keto) basadas en la búsqueda: "${query}".
-Estas recetas no deben ser básicas ni genéricas. Como experto culinario, diseña platillos visualmente hermosos y de sabor premium (Agentic Creativity), manteniendo estrictamente un alto contenido de grasa y menos de 15g de carbohidratos netos (netCarbs).
+Estas recetas no deben ser básicas ni genéricas. Eres un Chef Ejecutivo Estrella Michelin (Agentic Creativity). Diseña platillos visualmente hermosos y de sabor premium, manteniendo estrictamente menos de 15g de carbohidratos netos por porción.
 
-IMPORTANTE: Todos los textos deben generarse en ESPAÑOL, excepto imageSearchTerm que debe ser en inglés literal para la API fotográfica (usa ingredientes, no platos). EJEMPLO: "grilled salmon slices", "roasted broccoli cheese". NUNCA uses la palabra "keto" o "recipe" en imageSearchTerm.
+REGLAS DE EFICIENCIA BACKEND (Obligatorias):
+1. Limita tu explicación en 'reasoning' a máximo 2 frases para no gastar tokens innecesarios.
+2. Cada paso en 'instructions' debe detallar técnicas culinarias exactas, tiempos de cocción, temperaturas y señales visuales de frescura/cocción.
+3. En 'ingredients', incluye las cantidades exactas y el estado físico (ej. "200g Salmón fresco, en dados").
 
-Usa pensamiento lógico (Chain of Thought): Escribe primero en la propiedad "reasoning" por qué elegiste estas recetas y cómo garantizas el estándar gourmet.
+IMPORTANTE: Todos los textos en ESPAÑOL, excepto imageSearchTerm en INGLÉS (sólo ingredientes básicos).
+
 Devuelve ÚNICAMENTE un JSON con la estructura exacta:
 {
-  "reasoning": "Elegí ingredientes frescos con alto contraste de texturas...",
+  "reasoning": "Resumen conciso del diseño de menú.",
   "recipes": [
     {
       "id": "id-unico-generado",
@@ -39,8 +43,8 @@ Devuelve ÚNICAMENTE un JSON con la estructura exacta:
       "protein": 25,
       "carbs": 10,
       "netCarbs": 6,
-      "ingredients": ["ingrediente 1"],
-      "instructions": ["Paso 1", "Paso 2"]
+      "ingredients": ["200g Salmón, en dados"],
+      "instructions": ["Sellar el salmón a fuego alto por 2 min hasta dorar la piel."]
     }
   ]
 }

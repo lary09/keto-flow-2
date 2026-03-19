@@ -18,19 +18,22 @@ export async function POST(request: NextRequest) {
     const { ingredients } = requestSchema.parse(body);
 
     const systemPrompt = `
-Eres un chef experto de clase mundial y especialista en Keto.
-El usuario quiere recetas basadas principalmente en estos ingredientes que tiene: ${ingredients.join(', ')}.
+Eres un Chef Ejecutivo Estrella Michelin y Nutriólogo Clínico especializado en Dieta Keto.
+El usuario proporcionó estos ingredientes: ${ingredients.join(', ')}.
 
-AGENTIC WORKFLOW: No respondas mecánicamente. Aplica principios de alta cocina (UI/UX Pro Max). Combina texturas, colores y métodos de cocción variados a lo largo de los días para que la semana no sea aburrida. 
-Asegúrate rigurosamente de que CADA RECETA tenga menos de 15g de carbohidratos netos y sea alta en grasas saludables.
+AGENTIC WORKFLOW: No respondas mecánicamente. Aplica principios de alta cocina. Diseña menús con texturas complejas, acidez equilibrada y emplatados bellos.
+Asegúrate rigurosamente de que CADA RECETA tenga menos de 15g de carbohidratos netos y grasas saludables.
 
-IMPORTANTE: Todos los textos DEBEN estar en ESPAÑOL, excepto imageSearchTerm que debe ser en INGLÉS (sólo ingredientes básicos como "sliced avocado egg", nunca "keto" o "recipe").
+REGLAS DE EFICIENCIA BACKEND (Obligatorias):
+1. Limita tu explicación en 'reasoning' a máximo 2 frases cortas. Exceder esto gastará tokens innecesarios.
+2. Cada paso en 'instructions' debe detallar técnicas culinarias exactas, tiempos de cocción, temperaturas y señales visuales de frescura/cocción (ej. "Sellar la pechuga a fuego alto por 4 mins hasta lograr una costra dorada").
+3. En 'ingredients', incluye las cantidades exactas y el estado físico (ej. "200g Salmón fresco, en cubos" en lugar de "Salmón").
 
-Primero, explica tu línea de razonamiento en "reasoning" justificando tu elección de platillos.
-Genera un plan de 7 días.
-Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
+IMPORTANTE: Todos los textos en ESPAÑOL. El campo 'imageSearchTerm' EN INGLÉS (sólo ingredientes básicos).
+
+Devuelve este esquema exacto JSON:
 {
-  "reasoning": "El usuario proporcionó X. Diseñaré el día 1 con contrastes ácidos, el día 2 con estofados densos...",
+  "reasoning": "Resumen conciso.",
   "days": [
     {
       "day": 0,
@@ -43,8 +46,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
         "fat": 30,
         "protein": 20,
         "carbs": 5,
-        "ingredients": ["ingrediente 1"],
-        "instructions": ["Paso 1", "Paso 2"]
+        "ingredients": ["2 Huevos grandes fríos", "1/2 Aguacate Hass maduro, en rebanadas finas"],
+        "instructions": ["Crea un remolino en agua casi hirviendo con una cucharada de vinagre blanco.", "Desliza el huevo y cocina por exactamente 3 minutos para una yema líquida fluida."]
       },
       "lunch": {
         "title": "Nombre del almuerzo",
@@ -55,8 +58,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
         "fat": 45,
         "protein": 35,
         "carbs": 8,
-        "ingredients": ["ingrediente 1"],
-        "instructions": ["Paso 1", "Paso 2"]
+        "ingredients": ["ingrediente detallado"],
+        "instructions": ["Técnica culinaria detallada paso a paso"]
       },
       "dinner": {
         "title": "Nombre de la cena",
@@ -67,8 +70,8 @@ Responde ÚNICAMENTE en JSON válido con la siguiente estructura exacta:
         "fat": 40,
         "protein": 30,
         "carbs": 10,
-        "ingredients": ["ingrediente 1"],
-        "instructions": ["Paso 1", "Paso 2"]
+        "ingredients": ["ingrediente detallado"],
+        "instructions": ["Técnica culinaria detallada paso a paso"]
       }
     }
   ]
