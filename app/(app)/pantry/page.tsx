@@ -132,10 +132,10 @@ export default function PantryPage() {
 
       {/* Floating Command Bar (UI/UX Pro Max) */}
       <div className="relative z-20 mx-auto w-full max-w-3xl transform transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_0_40px_-15px_rgba(255,255,255,0.1)] group">
-        <div className="absolute -inset-1 rounded-[2.5rem] bg-linear-to-r from-primary/30 to-accent/30 opacity-40 blur-lg transition duration-1000 group-hover:opacity-100 group-hover:duration-200" />
+        <div className="absolute -inset-1 rounded-4xl bg-linear-to-r from-primary/30 to-accent/30 opacity-40 blur-lg transition duration-1000 group-hover:opacity-100 group-hover:duration-200" />
         <form 
           onSubmit={handleAddItem} 
-          className="relative flex flex-col sm:flex-row items-center bg-card/90 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden p-2 gap-2"
+          className="relative flex flex-col sm:flex-row items-center bg-card/90 backdrop-blur-2xl rounded-4xl border border-white/10 shadow-2xl overflow-hidden p-2 gap-2"
         >
           <div className="flex flex-1 items-center w-full px-4 text-foreground">
             <Search className="h-5 w-5 text-muted-foreground mr-3" />
@@ -206,9 +206,9 @@ export default function PantryPage() {
       {items.length >= 3 && (
         <div className="mx-auto w-full max-w-5xl mt-2 mb-4">
           <Link href="/meal-planner">
-            <div className="group relative overflow-hidden rounded-[2.5rem] border border-primary/20 bg-card p-1 transition-all duration-700 hover:shadow-[0_0_50px_-15px_rgba(var(--primary),0.3)] hover:-translate-y-1 cursor-pointer">
+            <div className="group relative overflow-hidden rounded-4xl border border-primary/20 bg-card p-1 transition-all duration-700 hover:shadow-[0_0_50px_-15px_rgba(var(--primary),0.3)] hover:-translate-y-1 cursor-pointer">
               <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-transparent to-accent/10 opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative flex items-center gap-6 rounded-[2.25rem] bg-card/80 backdrop-blur-xl p-6 sm:p-8">
+              <div className="relative flex items-center gap-6 rounded-4xl bg-card/80 backdrop-blur-xl p-6 sm:p-8">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-accent shadow-inner text-white transform transition-transform duration-700 group-hover:rotate-12 group-hover:scale-110">
                   <Sparkles className="h-8 w-8" />
                 </div>
@@ -233,7 +233,7 @@ export default function PantryPage() {
       {isLoading && (
         <div className="mx-auto w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-[2.5rem] bg-card/60" />
+            <Skeleton key={i} className="h-64 rounded-4xl bg-card/60" />
           ))}
         </div>
       )}
@@ -241,7 +241,7 @@ export default function PantryPage() {
       {/* Immersive Empty State */}
       {!isLoading && items.length === 0 && (
         <div className="mx-auto w-full max-w-3xl mt-12">
-           <div className="relative p-12 text-center rounded-[3rem] border border-dashed border-white/10 bg-card/30 backdrop-blur-sm">
+           <div className="relative p-12 text-center rounded-5xl border border-dashed border-white/10 bg-card/30 backdrop-blur-sm">
              <Refrigerator className="mx-auto h-20 w-20 text-muted-foreground/30 mb-6" />
              <h3 className="text-2xl font-extrabold text-foreground mb-3">La despensa está vacía</h3>
              <p className="text-muted-foreground max-w-sm mx-auto">
@@ -271,7 +271,7 @@ export default function PantryPage() {
                   <div 
                     key={categoryKey} 
                     className={cn(
-                      "group relative flex flex-col overflow-hidden rounded-[2.5rem] border bg-card p-6 transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]",
+                      "group relative flex flex-col overflow-hidden rounded-4xl border bg-card p-6 transition-all duration-700 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]",
                       config.bentoBorder
                     )}
                   >
@@ -280,7 +280,7 @@ export default function PantryPage() {
                     
                     <div className="relative z-10 flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <div className={cn("flex h-12 w-12 items-center justify-center rounded-[1.25rem] shadow-inner", config.bgColor, config.color)}>
+                        <div className={cn("flex h-12 w-12 items-center justify-center rounded-3xl shadow-inner", config.bgColor, config.color)}>
                           <config.icon className="h-6 w-6" />
                         </div>
                         <h3 className="font-extrabold tracking-tight text-[1.1rem] text-foreground">

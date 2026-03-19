@@ -5,24 +5,23 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/contexts/auth-context'
 import { useMealLogs } from '@/hooks/use-meal-logs'
-import { MacroRing } from '@/components/macro-ring'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2, Database, Sparkles } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Coffee, Sun, Moon, Apple, Trash2, Database, Sparkles, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { FoodLogDialog } from '@/components/food-log-dialog'
-import { MealPlanCard } from '@/components/meal-plan-card'
 import { RecipeDetailSheet } from '@/components/recipe-detail-sheet'
 import { toast } from 'sonner'
 import type { MealLog } from '@/lib/appwrite'
 import { startOfWeek, addDays, isSameDay } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 const mealTypeConfig = {
-  breakfast: { icon: Coffee, label: 'Desayuno', color: 'bg-amber-100 text-amber-700' },
-  lunch: { icon: Sun, label: 'Almuerzo', color: 'bg-sky-100 text-sky-700' },
-  dinner: { icon: Moon, label: 'Cena', color: 'bg-indigo-100 text-indigo-700' },
-  snack: { icon: Apple, label: 'Snack', color: 'bg-emerald-100 text-emerald-700' },
+  breakfast: { icon: Coffee, label: 'Desayuno', bg: 'bg-amber-500/10', color: 'text-amber-600', border: 'border-amber-500/20' },
+  lunch: { icon: Sun, label: 'Almuerzo', bg: 'bg-sky-500/10', color: 'text-sky-600', border: 'border-sky-500/20' },
+  dinner: { icon: Moon, label: 'Cena', bg: 'bg-indigo-500/10', color: 'text-indigo-600', border: 'border-indigo-500/20' },
+  snack: { icon: Apple, label: 'Snack', bg: 'bg-emerald-500/10', color: 'text-emerald-600', border: 'border-emerald-500/20' },
 }
 
 export default function DashboardPage() {
@@ -44,7 +43,6 @@ export default function DashboardPage() {
     carbs: profile?.dailyCarbGoal || 25,
   }
 
-  // Load auto-generated plan for the selected day
   useEffect(() => {
     const saved = localStorage.getItem('keto-flow-week-plan')
     if (saved) {
@@ -106,15 +104,6 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mb-6 max-w-sm">
           No se ha encontrado la base de datos en Appwrite. Para empezar, debes crear las colecciones necesarias.
         </p>
-        <div className="space-y-2 text-sm text-left bg-muted p-4 rounded-lg w-full max-w-md">
-           <p className="font-semibold mb-2">Instrucciones:</p>
-           <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-             <li>Entra en tu consola de Appwrite</li>
-             <li>Ve a Databases &gt; main</li>
-             <li>Crea la colección: <code className="bg-background px-1 rounded">user_profiles</code></li>
-             <li>Crea la colección: <code className="bg-background px-1 rounded">meal_logs</code></li>
-           </ul>
-        </div>
         <Button className="mt-8" onClick={() => window.location.reload()}>
           Ya las he creado, reintentar
         </Button>
@@ -123,234 +112,241 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
+    <div className="flex flex-col gap-8 p-5 pb-24">
+      
+      {/* ─── HEADER (PRO MAX) ─── */}
+      <header className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="text-[10px] font-black tracking-widest text-muted-foreground uppercase mb-1">
+            {format(selectedDate, "MMM d, yyyy", { locale: es })}
+          </p>
+          <h1 className="text-3xl font-black tracking-tight text-foreground leading-none">
             {isToday ? 'Hoy' : format(selectedDate, 'EEEE', { locale: es })}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {format(selectedDate, "d 'de' MMMM, yyyy", { locale: es })}
-          </p>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={goToPrevDay}>
+        <div className="flex items-center gap-1.5 bg-muted/50 p-1.5 rounded-full backdrop-blur-md">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goToPrevDay}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
+            className="h-8 rounded-full font-bold text-xs px-3"
             onClick={() => setSelectedDate(new Date())}
             disabled={isToday}
           >
             Hoy
           </Button>
-          <Button variant="ghost" size="icon" onClick={goToNextDay}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={goToNextDay}>
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Greeting */}
-      <div className="pt-2">
-        <p className="text-sm font-semibold tracking-wider text-muted-foreground uppercase mb-1">
-          RESUMEN DIARIO
-        </p>
-        <h2 className="text-3xl font-extrabold tracking-tight text-foreground">
-          ¡Hola, {user?.name?.split(' ')[0] || 'amigo'}! 👋
-        </h2>
-      </div>
-
-      {/* Suggested Auto-Plan Magazine Cover (UI/UX Pro Max) */}
+      {/* ─── SUGGESTED MEAL (HERO) ─── */}
       {suggestedPlan && (
-        <div className="relative overflow-hidden rounded-[2rem] border shadow-2xl group cursor-pointer transition-all hover:shadow-primary/20" onClick={() => { setSelectedRecipe(suggestedPlan.lunch || suggestedPlan.dinner); setSheetOpen(true); }}>
+        <section className="relative overflow-hidden rounded-4xl border-0 shadow-2xl group cursor-pointer transition-all hover:shadow-primary/20 aspect-4/3 sm:aspect-2/1" onClick={() => { setSelectedRecipe(suggestedPlan.lunch || suggestedPlan.dinner); setSheetOpen(true); }}>
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-60" 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-[1.5s] ease-out group-hover:scale-105 opacity-60" 
             style={{ backgroundImage: `url(${suggestedPlan.lunch?.image || suggestedPlan.dinner?.image || suggestedPlan.breakfast?.image})` }} 
           />
           <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
           
           <div className="relative p-6 pt-32 flex flex-col justify-end z-10 w-full h-full">
             <div className="flex items-center gap-2 mb-3">
-              <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold text-primary-foreground flex items-center gap-1 shadow-md">
+              <span className="bg-primary/90 backdrop-blur-xl px-3 py-1 rounded-full text-[10px] font-black text-primary-foreground flex items-center gap-1.5 shadow-md tracking-wider">
                 <Sparkles className="h-3 w-3" />
                 ELECCIÓN DEL CHEF
               </span>
             </div>
-            <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground mb-2 leading-tight drop-shadow-md">
+            <h3 className="text-3xl sm:text-5xl font-black tracking-tighter text-foreground mb-3 leading-none drop-shadow-xl">
               {(suggestedPlan.lunch?.title || "Sugerencia del Día")}
             </h3>
-            <p className="text-foreground/80 font-medium flex items-center gap-3 text-sm sm:text-base mb-5">
-              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">⏳ {suggestedPlan.lunch?.readyInMinutes || 20} min</span>
-              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">🔥 {suggestedPlan.lunch?.calories || 400} kcal</span>
-              <span className="bg-background/50 backdrop-blur-md px-2 py-1 rounded-md">🥩 {suggestedPlan.lunch?.protein || 20}g Prot</span>
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base mb-6 font-bold text-foreground/90">
+              <span className="bg-background/40 backdrop-blur-xl border border-white/10 px-2.5 py-1 rounded-lg shadow-sm">⏳ {suggestedPlan.lunch?.readyInMinutes || 20} min</span>
+              <span className="bg-background/40 backdrop-blur-xl border border-white/10 px-2.5 py-1 rounded-lg text-keto-calories shadow-sm">🔥 {suggestedPlan.lunch?.calories || 400} kcal</span>
+              <span className="bg-background/40 backdrop-blur-xl border border-white/10 px-2.5 py-1 rounded-lg text-keto-protein shadow-sm">🥩 {suggestedPlan.lunch?.protein || 20}g Prot</span>
+            </div>
             <div className="grid grid-cols-3 gap-2">
-              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.breakfast); setSheetOpen(true); }}>
+              <Button size="sm" variant="secondary" className="w-full h-12 rounded-2xl bg-background/80 backdrop-blur-2xl hover:bg-background font-bold" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.breakfast); setSheetOpen(true); }}>
                 Desayuno
               </Button>
-              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.lunch); setSheetOpen(true); }}>
+              <Button size="sm" variant="secondary" className="w-full h-12 rounded-2xl bg-background/80 backdrop-blur-2xl hover:bg-background font-bold" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.lunch); setSheetOpen(true); }}>
                 Almuerzo
               </Button>
-              <Button size="sm" variant="secondary" className="w-full rounded-xl bg-background/80 backdrop-blur-lg hover:bg-background" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.dinner); setSheetOpen(true); }}>
+              <Button size="sm" variant="secondary" className="w-full h-12 rounded-2xl bg-background/80 backdrop-blur-2xl hover:bg-background font-bold" onClick={(e) => { e.stopPropagation(); setSelectedRecipe(suggestedPlan.dinner); setSheetOpen(true); }}>
                 Cena
               </Button>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Modern High-Impact Macro Bars */}
-      <div className="rounded-[2rem] bg-card border shadow-sm p-6 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              Progreso de Macros
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Restan <span className="font-bold text-foreground">{Math.max(0, goals.calories - totals.calories)} kcal</span> hoy.
-            </p>
-          </div>
+      {/* ─── MACROS BENTO GRID (APPLE HEALTH STYLE) ─── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Impacto Keto
+          </h2>
+          <span className="text-sm font-bold text-muted-foreground">{Math.max(0, goals.calories - totals.calories)} kcal restantes</span>
         </div>
 
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full rounded-full" />
-            <Skeleton className="h-10 w-full rounded-full" />
-            <Skeleton className="h-10 w-full rounded-full" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-32 rounded-3xl" />
+            <Skeleton className="h-32 rounded-3xl" />
           </div>
         ) : (
-          <div className="space-y-5">
-            {/* Grasas */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-semibold">
-                <span className="text-orange-500">Grasas</span>
-                <span>{Math.round(totals.fat)}g <span className="text-muted-foreground">/ {goals.fat}g</span></span>
-              </div>
-              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.fat / Math.max(1, goals.fat)) * 100)}%` }} />
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             
-            {/* Proteinas */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-semibold">
-                <span className="text-primary">Proteínas</span>
-                <span>{Math.round(totals.protein)}g <span className="text-muted-foreground">/ {goals.protein}g</span></span>
-              </div>
-              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.protein / Math.max(1, goals.protein)) * 100)}%` }} />
-              </div>
-            </div>
+            {/* Grasas (Fat) */}
+            <Card className="rounded-4xl border-0 bg-keto-fat/10 shadow-sm overflow-hidden relative group">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-keto-fat/20 blur-3xl rounded-full transition-transform group-hover:scale-150" />
+              <CardContent className="p-5 h-full flex flex-col justify-between relative z-10">
+                <p className="text-[10px] font-black text-keto-fat/70 uppercase tracking-widest mb-2">Grasas</p>
+                <div>
+                  <div className="flex items-end gap-1 font-black text-keto-fat leading-none mb-3">
+                    <span className="text-4xl">{Math.round(totals.fat)}</span>
+                    <span className="text-base mb-1">/ {goals.fat}g</span>
+                  </div>
+                  <div className="h-2 w-full bg-keto-fat/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-keto-fat rounded-full transition-all duration-[1.5s] ease-out" style={{ width: `${Math.min(100, (totals.fat / Math.max(1, goals.fat)) * 100)}%` }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Carbohidratos */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm font-semibold">
-                <span className="text-amber-600">Carbs Netos</span>
-                <span>{Math.round(totals.carbs)}g <span className="text-muted-foreground">/ {goals.carbs}g</span></span>
-              </div>
-              <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min(100, (totals.carbs / Math.max(1, goals.carbs)) * 100)}%` }} />
-              </div>
-            </div>
+            {/* Proteínas (Protein) */}
+            <Card className="rounded-4xl border-0 bg-keto-protein/10 shadow-sm overflow-hidden relative group">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-keto-protein/20 blur-3xl rounded-full transition-transform group-hover:scale-150" />
+              <CardContent className="p-5 h-full flex flex-col justify-between relative z-10">
+                <p className="text-[10px] font-black text-keto-protein/70 uppercase tracking-widest mb-2">Proteínas</p>
+                <div>
+                  <div className="flex items-end gap-1 font-black text-keto-protein leading-none mb-3">
+                    <span className="text-4xl">{Math.round(totals.protein)}</span>
+                    <span className="text-base mb-1">/ {goals.protein}g</span>
+                  </div>
+                  <div className="h-2 w-full bg-keto-protein/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-keto-protein rounded-full transition-all duration-[1.5s] ease-out" style={{ width: `${Math.min(100, (totals.protein / Math.max(1, goals.protein)) * 100)}%` }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Carbohidratos Netos (Wide) */}
+            <Card className="col-span-2 rounded-4xl border-0 bg-keto-carbs/10 shadow-sm overflow-hidden relative group">
+              <div className="absolute bottom-[-50%] right-[-10%] w-64 h-64 bg-keto-carbs/20 blur-[60px] rounded-full transition-transform group-hover:scale-110" />
+              <CardContent className="p-5 sm:p-6 flex items-center justify-between relative z-10">
+                <div>
+                  <p className="text-[10px] font-black text-keto-carbs/70 uppercase tracking-widest mb-1">Carbos Netos</p>
+                  <div className="flex items-end gap-1 font-black text-keto-carbs leading-none">
+                    <span className="text-4xl sm:text-5xl">{Math.round(totals.carbs)}</span>
+                    <span className="text-base sm:text-xl mb-1 sm:mb-1.5">/ {goals.carbs}g</span>
+                  </div>
+                </div>
+                <div className="w-1/2 max-w-[150px]">
+                  <div className="h-3 w-full bg-keto-carbs/10 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-keto-carbs rounded-full transition-all duration-[1.5s] ease-out" style={{ width: `${Math.min(100, (totals.carbs / Math.max(1, goals.carbs)) * 100)}%` }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Meals */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Comidas</h2>
-          <Button size="sm" asChild>
+      {/* ─── MEALS LOGS (GLASSMORPHISM LIST) ─── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xl font-black tracking-tight text-foreground">Registro de Hoy</h2>
+          <Button size="sm" variant="ghost" className="rounded-full text-primary font-bold hover:bg-primary/10" asChild>
             <Link href="/recipes">
-              <Plus className="mr-1 h-4 w-4" />
-              Buscar Recetas
+              <Sparkles className="mr-1.5 h-4 w-4" /> Buscar ideas
             </Link>
           </Button>
         </div>
 
-        {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((mealType) => {
-          const config = mealTypeConfig[mealType]
-          const meals = mealsByType[mealType]
-          const mealTotals = meals.reduce(
-            (acc, m) => ({
-              calories: acc.calories + (m.calories || 0),
-              fat: acc.fat + (m.fat || 0),
-              protein: acc.protein + (m.protein || 0),
-              carbs: acc.carbs + (m.carbs || 0),
-            }),
-            { calories: 0, fat: 0, protein: 0, carbs: 0 }
-          )
+        <div className="grid gap-3">
+          {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((mealType) => {
+            const config = mealTypeConfig[mealType]
+            const meals = mealsByType[mealType]
+            const mealTotals = meals.reduce(
+              (acc, m) => ({
+                calories: acc.calories + (m.calories || 0),
+                fat: acc.fat + (m.fat || 0),
+                protein: acc.protein + (m.protein || 0),
+                carbs: acc.carbs + (m.carbs || 0),
+              }),
+              { calories: 0, fat: 0, protein: 0, carbs: 0 }
+            )
 
-          return (
-            <Card key={mealType}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`rounded-lg p-2 ${config.color}`}>
-                      <config.icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{config.label}</CardTitle>
-                      {meals.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(mealTotals.calories)} kcal
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenLog(mealType)}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-12 w-full" />
-                ) : meals.length === 0 ? (
-                  <button
-                    onClick={() => handleOpenLog(mealType)}
-                    className="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-muted py-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Añadir comida
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    {meals.map((meal) => (
-                      <div
-                        key={meal.$id}
-                        className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-foreground">{meal.foodName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {Math.round(meal.calories)} kcal · F: {Math.round(meal.fat)}g · P: {Math.round(meal.protein)}g · C: {Math.round(meal.carbs)}g
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteLog(meal.$id!)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+            return (
+              <Card key={mealType} className={cn("overflow-hidden rounded-3xl border-border/40 shadow-sm transition-all hover:shadow-md", meals.length > 0 ? "bg-card" : "bg-muted/20 border-dashed")}>
+                <div className="p-4 sm:p-5 flex flex-col gap-4">
+                  
+                  {/* Meal Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("flex items-center justify-center w-12 h-12 rounded-2xl", config.bg)}>
+                        <config.icon className={cn("h-6 w-6", config.color)} />
                       </div>
-                    ))}
+                      <div>
+                        <h3 className="text-lg font-black text-foreground">{config.label}</h3>
+                        {meals.length > 0 ? (
+                          <p className="text-xs font-bold text-muted-foreground">{Math.round(mealTotals.calories)} kcal aportadas</p>
+                        ) : (
+                          <p className="text-xs font-medium text-muted-foreground">Sin registrar</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-10 w-10 rounded-full drop-shadow-sm transition-transform active:scale-95"
+                      onClick={() => handleOpenLog(mealType)}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+
+                  {/* Meal Items */}
+                  {meals.length > 0 && (
+                    <div className="space-y-2 mt-1">
+                      {meals.map((meal) => (
+                        <div
+                          key={meal.$id}
+                          className="group flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-surface/50 border border-border/50 p-3.5 transition-colors hover:bg-muted/80"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold text-sm text-foreground mb-1">{meal.foodName}</p>
+                            <div className="flex flex-wrap gap-2 text-[10px] font-bold text-muted-foreground">
+                              <span className="bg-background/80 px-2 py-0.5 rounded-md shadow-xs text-foreground/80">{Math.round(meal.calories)} kcal</span>
+                              <span className="bg-keto-fat/10 text-keto-fat px-2 py-0.5 rounded-md">F: {Math.round(meal.fat)}</span>
+                              <span className="bg-keto-protein/10 text-keto-protein px-2 py-0.5 rounded-md">P: {Math.round(meal.protein)}</span>
+                              <span className="bg-keto-carbs/10 text-keto-carbs px-2 py-0.5 rounded-md">C: {Math.round(meal.carbs)}</span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-full shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive self-end sm:self-auto opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                            onClick={() => handleDeleteLog(meal.$id!)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      </section>
 
       {/* Food Log Dialog */}
       <FoodLogDialog
@@ -360,7 +356,7 @@ export default function DashboardPage() {
         date={dateString}
       />
 
-      {/* Recipe Detail Sheet for Suggested Meals */}
+      {/* Recipe Detail Sheet */}
       <RecipeDetailSheet
         recipe={selectedRecipe}
         open={sheetOpen}

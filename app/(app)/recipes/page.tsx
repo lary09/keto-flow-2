@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Search, Clock, Users, Heart, HeartOff, AlertCircle } from 'lucide-react'
+import { Search, Clock, Users, Heart, Sparkles, AlertCircle, ChefHat } from 'lucide-react'
 import { RecipeDetailSheet } from '@/components/recipe-detail-sheet'
 import { useAuth } from '@/contexts/auth-context'
 import { databases, APPWRITE_DATABASE_ID, COLLECTIONS, Query, ID, type SavedRecipe } from '@/lib/appwrite'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface Recipe {
   id: string
@@ -206,131 +207,154 @@ export default function RecipesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Recetas</h1>
-        <p className="text-sm text-muted-foreground">Descubre deliciosas recetas keto-friendly</p>
+    <div className="flex flex-col gap-6 p-4 sm:p-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      
+      {/* ── HEADER ── */}
+      <header className="flex flex-col gap-1 pt-2">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-primary/10 rounded-2xl shadow-inner">
+            <ChefHat className="w-6 h-6 text-primary" />
+          </div>
+          <h1 className="text-3xl font-black text-foreground tracking-tighter">Explorar</h1>
+        </div>
+        <p className="text-sm font-semibold text-muted-foreground ml-1">Inspiración cetogénica de nivel Chef</p>
+      </header>
+
+      {/* ── SEARCH BAR (IMMERSIBA) ── */}
+      <div className="relative z-20 group">
+        <div className="absolute -inset-1 rounded-3xl bg-linear-to-r from-primary/30 to-accent/30 opacity-40 blur-lg transition duration-1000 group-focus-within:opacity-100" />
+        <form onSubmit={handleSearch} className="relative flex gap-2 bg-card/60 backdrop-blur-2xl border border-border/50 p-2 rounded-2xl shadow-xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              type="search"
+              placeholder="¿Qué te apetece hoy? (ej. Salmón, Pizza...)"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-12 border-0 bg-transparent text-base h-12 focus-visible:ring-0 placeholder:text-muted-foreground/40 font-medium"
+            />
+          </div>
+          <Button type="submit" disabled={isLoading} className="h-12 w-12 sm:w-auto px-4 rounded-xl font-black bg-primary text-primary-foreground shadow-lg active:scale-95 transition-all">
+            <Sparkles className="h-5 w-5 sm:mr-2" />
+            <span className="hidden sm:inline">Descubrir</span>
+          </Button>
+        </form>
       </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar recetas keto..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" disabled={isLoading}>
-          Buscar
-        </Button>
-      </form>
-
-      {/* Error State */}
+      {/* ── ERROR STATE ── */}
       {error && (
-        <Card className="border-destructive/50 bg-destructive/10">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <div>
-              <p className="font-medium text-destructive">Error de API</p>
-              <p className="text-sm text-muted-foreground">{error}</p>
+        <Card className="border-destructive/20 bg-destructive/5 rounded-3xl overflow-hidden">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="p-3 bg-destructive/10 rounded-2xl">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black text-destructive uppercase tracking-widest">Error de Conexión</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="overflow-hidden">
-              <Skeleton className="aspect-video w-full" />
-              <CardContent className="p-4">
-                <Skeleton className="mb-2 h-5 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* ── MASONRY-STYLE GRID ── */}
+      <div className="columns-2 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+        
+        {/* Loading Skeletons */}
+        {isLoading && (
+          [1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="break-inside-avoid">
+              <Card className="overflow-hidden border-border/50 rounded-3xl h-fit">
+                <Skeleton className={cn("w-full", i % 2 === 0 ? "aspect-square" : "aspect-video")} />
+                <CardContent className="p-4 space-y-3">
+                  <Skeleton className="h-4 w-3/4" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-6 w-12 rounded-full" />
+                    <Skeleton className="h-6 w-12 rounded-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ))
+        )}
 
-      {/* Results */}
-      {!isLoading && recipes.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {recipes.map((recipe) => (
+        {/* Recipe Cards */}
+        {!isLoading && recipes.map((recipe, index) => (
+          <div key={recipe.id} className="break-inside-avoid">
             <Card
-              key={recipe.id}
-              className="cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
+              className="group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 transition-all duration-500 rounded-3xl shadow-xs hover:shadow-2xl hover:-translate-y-1 bg-card/40 backdrop-blur-md"
               onClick={() => openRecipeDetail(recipe)}
             >
-              <div className="relative aspect-video">
+              <div className={cn("relative w-full", index % 3 === 0 ? "aspect-square" : "aspect-4/5")}>
                 <Image
                   src={recipe.image}
                   alt={recipe.title}
                   fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, 50vw"
+                  className="object-cover transform transition-transform duration-700 group-hover:scale-110"
+                  sizes="(max-width: 640px) 50vw, 33vw"
                 />
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                
+                {/* Save Button */}
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute right-2 top-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                  className={cn(
+                    "absolute right-3 top-3 h-10 w-10 rounded-2xl bg-black/20 backdrop-blur-md border border-white/10 hover:bg-white/20 active:scale-95 transition-all text-white",
+                    savedRecipeIds.has(recipe.id) && "bg-white/90 text-red-500 border-white shadow-lg"
+                  )}
                   onClick={(e) => {
                     e.stopPropagation()
                     toggleSaveRecipe(recipe)
                   }}
                 >
-                  {savedRecipeIds.has(recipe.id) ? (
-                    <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                  ) : (
-                    <HeartOff className="h-4 w-4" />
-                  )}
+                  <Heart className={cn("h-5 w-5", savedRecipeIds.has(recipe.id) && "fill-current")} />
                 </Button>
-              </div>
-              <CardContent className="p-4">
-                <h3 className="line-clamp-2 font-semibold text-foreground">{recipe.title}</h3>
-                <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {recipe.readyInMinutes}min
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {recipe.servings} porc.
-                  </span>
+
+                {/* Info Overlay */}
+                <div className="absolute bottom-3 left-3 right-3 text-white flex flex-col gap-1">
+                  <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-80">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {recipe.readyInMinutes}'
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {recipe.servings} p.
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-black leading-tight line-clamp-2 drop-shadow-lg">
+                    {recipe.title}
+                  </h3>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <Badge variant="secondary" className="text-xs">
-                    {Math.round(recipe.calories)} kcal
+              </div>
+              
+              <CardContent className="p-3">
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <Badge variant="secondary" className="bg-primary/5 text-primary border-0 text-[9px] font-black uppercase tracking-tighter px-2">
+                    {Math.round(recipe.netCarbs)}g NET
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    F: {Math.round(recipe.fat)}g
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    P: {Math.round(recipe.protein)}g
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    C: {Math.round(recipe.netCarbs)}g
+                  <Badge variant="outline" className="border-border/50 text-muted-foreground text-[9px] font-bold px-2">
+                    {Math.round(recipe.calories)} KCAL
                   </Badge>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
-      {/* Empty State */}
+      {/* ── EMPTY STATE ── */}
       {!isLoading && hasSearched && recipes.length === 0 && !error && (
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">No se encontraron recetas. Intenta con otro término.</p>
+        <div className="py-20 flex flex-col items-center justify-center text-center opacity-70">
+          <div className="w-20 h-20 bg-muted/30 rounded-4xl flex items-center justify-center mb-6">
+            <Search className="w-10 h-10 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-black text-foreground">Sin Secretos de Cocina</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">Intenta buscar algo más sencillo como "Pollo" o "Aguacate".</p>
         </div>
       )}
 
-      {/* Recipe Detail Sheet */}
+      {/* ── RECIPE DETAIL SHEET ── */}
       <RecipeDetailSheet
         recipe={selectedRecipe}
         open={sheetOpen}
