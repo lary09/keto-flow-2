@@ -4,6 +4,31 @@ import useSWR from 'swr'
 import { databases, APPWRITE_DATABASE_ID, COLLECTIONS, Query, ID, type ShoppingList, type ShoppingItem } from '@/lib/appwrite'
 import { useAuth } from '@/contexts/auth-context'
 
+function parseShoppingItems(rawItems: unknown) {
+  if (Array.isArray(rawItems)) {
+    return rawItems as ShoppingItem[]
+  }
+
+  if (typeof rawItems !== 'string' || rawItems.trim() === '') {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(rawItems)
+    return Array.isArray(parsed) ? parsed as ShoppingItem[] : []
+  } catch (error) {
+    console.warn('No se pudieron parsear los items de shopping, se usará una lista vacía.', error)
+    return []
+  }
+}
+
+function hydrateShoppingList(doc: ShoppingList | (ShoppingList & { items: unknown })) {
+  return {
+    ...doc,
+    items: parseShoppingItems(doc.items),
+  } as ShoppingList & { items: ShoppingItem[] }
+}
+
 export function useShoppingLists() {
   const { user } = useAuth()
 
@@ -18,10 +43,7 @@ export function useShoppingLists() {
           Query.orderDesc('$createdAt'),
         ]
       )
-      return response.documents.map((doc) => ({
-        ...doc,
-        items: JSON.parse((doc as unknown as ShoppingList).items || '[]') as ShoppingItem[],
-      })) as unknown as (ShoppingList & { items: ShoppingItem[] })[]
+      return response.documents.map((doc) => hydrateShoppingList(doc as unknown as ShoppingList))
     }
   )
 
@@ -38,8 +60,9 @@ export function useShoppingLists() {
         items: '[]',
       }
     )
-    mutate()
-    return newList
+    const hydratedList = hydrateShoppingList(newList as unknown as ShoppingList)
+    mutate((current) => [hydratedList, ...(current || [])], false)
+    return hydratedList
   }
 
   const deleteList = async (listId: string) => {
@@ -48,7 +71,7 @@ export function useShoppingLists() {
       COLLECTIONS.SHOPPING_LISTS,
       listId
     )
-    mutate()
+    mutate((current) => (current || []).filter((list) => list.$id !== listId), false)
   }
 
   const updateList = async (listId: string, updates: { name?: string; items?: ShoppingItem[] }) => {
@@ -56,18 +79,27 @@ export function useShoppingLists() {
     if (updates.name) updateData.name = updates.name
     if (updates.items) updateData.items = JSON.stringify(updates.items)
 
-    await databases.updateDocument(
+    const updatedDoc = await databases.updateDocument(
       APPWRITE_DATABASE_ID,
       COLLECTIONS.SHOPPING_LISTS,
       listId,
       updateData
     )
-    mutate()
+    const hydratedList = hydrateShoppingList(updatedDoc as unknown as ShoppingList)
+    mutate((current) => (current || []).map((list) => (list.$id === listId ? hydratedList : list)), false)
   }
 
   const addItemToList = async (listId: string, item: Omit<ShoppingItem, 'id'>) => {
-    const list = data?.find((l) => l.$id === listId)
-    if (!list) return
+    let list = data?.find((l) => l.$id === listId)
+
+    if (!list) {
+      const remoteList = await databases.getDocument(
+        APPWRITE_DATABASE_ID,
+        COLLECTIONS.SHOPPING_LISTS,
+        listId
+      )
+      list = hydrateShoppingList(remoteList as unknown as ShoppingList)
+    }
 
     const newItem: ShoppingItem = {
       ...item,
@@ -80,8 +112,16 @@ export function useShoppingLists() {
   }
 
   const toggleItemChecked = async (listId: string, itemId: string) => {
-    const list = data?.find((l) => l.$id === listId)
-    if (!list) return
+    let list = data?.find((l) => l.$id === listId)
+
+    if (!list) {
+      const remoteList = await databases.getDocument(
+        APPWRITE_DATABASE_ID,
+        COLLECTIONS.SHOPPING_LISTS,
+        listId
+      )
+      list = hydrateShoppingList(remoteList as unknown as ShoppingList)
+    }
 
     const updatedItems = list.items.map((item) =>
       item.id === itemId ? { ...item, checked: !item.checked } : item
@@ -91,8 +131,16 @@ export function useShoppingLists() {
   }
 
   const removeItemFromList = async (listId: string, itemId: string) => {
-    const list = data?.find((l) => l.$id === listId)
-    if (!list) return
+    let list = data?.find((l) => l.$id === listId)
+
+    if (!list) {
+      const remoteList = await databases.getDocument(
+        APPWRITE_DATABASE_ID,
+        COLLECTIONS.SHOPPING_LISTS,
+        listId
+      )
+      list = hydrateShoppingList(remoteList as unknown as ShoppingList)
+    }
 
     const updatedItems = list.items.filter((item) => item.id !== itemId)
     await updateList(listId, { items: updatedItems })

@@ -28,9 +28,12 @@ interface Recipe {
   ingredients: string[]
 }
 
+type DietMode = 'keto' | 'flexible'
+
 export default function RecipesPage() {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
+  const [dietMode, setDietMode] = useState<DietMode>('keto')
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
@@ -38,6 +41,8 @@ export default function RecipesPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+
+  const modeLabel = dietMode === 'keto' ? 'keto estricto' : 'flexible'
 
   // Fetch saved recipes on mount
   useEffect(() => {
@@ -67,12 +72,15 @@ export default function RecipesPage() {
     setHasSearched(true)
 
     try {
-      const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(query)}&number=12`)
+      const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(query)}&number=12&mode=${dietMode}`)
       if (!response.ok) {
         throw new Error('Failed to search recipes')
       }
       const data = await response.json()
       setRecipes(data.recipes || [])
+      if (dietMode === 'keto' && data.filteredOut > 0) {
+        toast.info(`Filtré ${data.filteredOut} receta(s) por no cumplir el modo keto estricto.`)
+      }
     } catch (err) {
       console.error('Error de búsqueda:', err)
       setError('Error al buscar recetas. Por favor, comprueba tu clave API.')
@@ -109,9 +117,13 @@ export default function RecipesPage() {
               netCarbs: doc.carbs,
               ingredients: doc.ingredients ? JSON.parse(doc.ingredients) : []
            }))
+
+           const modeAwareRecipes = dietMode === 'keto'
+             ? cachedRecipes.filter((recipe) => (recipe.netCarbs || recipe.carbs || 0) <= 15)
+             : cachedRecipes
            
            // Remove duplicates by ID and take 12 max
-           const uniqueOrganic = Array.from(new Map(cachedRecipes.map(item => [item.id, item])).values()).slice(0, 12)
+           const uniqueOrganic = Array.from(new Map(modeAwareRecipes.map(item => [item.id, item])).values()).slice(0, 12)
            
            if (uniqueOrganic.length >= 4) { // Only use cache if we have a decent amount of recipes
               setRecipes(uniqueOrganic as Recipe[])
@@ -125,10 +137,12 @@ export default function RecipesPage() {
 
       // 2. Fallback to AI (Llama-3 + Pexels)
       try {
-        const keywords = ['keto', 'low carb', 'cetogenica', 'keto breakfast', 'keto dinner', 'keto snack', 'keto salmon', 'keto avocado']
+        const keywords = dietMode === 'keto'
+          ? ['keto', 'low carb', 'cetogenica', 'keto breakfast', 'keto dinner', 'keto snack', 'keto salmon', 'keto avocado']
+          : ['comfort food', 'healthy dinner', 'easy chicken', 'avocado brunch', 'quick pasta', 'fresh salad', 'homemade soup', 'protein bowl']
         const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)]
         
-        const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(randomKeyword)}`)
+        const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(randomKeyword)}&mode=${dietMode}`)
         if (response.ok) {
           const data = await response.json()
           setRecipes(data.recipes || [])
@@ -140,7 +154,7 @@ export default function RecipesPage() {
       }
     }
     loadInitialRecipes()
-  }, [])
+  }, [dietMode])
 
   const toggleSaveRecipe = useCallback(async (recipe: Recipe) => {
     if (!user) return
@@ -217,7 +231,9 @@ export default function RecipesPage() {
           </div>
           <h1 className="text-3xl font-black text-foreground tracking-tighter">Explorar</h1>
         </div>
-        <p className="text-sm font-semibold text-muted-foreground ml-1">Inspiración cetogénica de nivel Chef</p>
+        <p className="text-sm font-semibold text-muted-foreground ml-1">
+          {dietMode === 'keto' ? 'Inspiración cetogénica de nivel Chef' : 'Ideas ricas para comer bien, sin rigidez keto'}
+        </p>
       </header>
 
       {/* ── SEARCH BAR (IMMERSIBA) ── */}
@@ -228,7 +244,7 @@ export default function RecipesPage() {
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
               type="search"
-              placeholder="¿Qué te apetece hoy? (ej. Salmón, Pizza...)"
+              placeholder={dietMode === 'keto' ? 'Busca recetas keto reales (ej. salmón, aguacate...)' : '¿Qué te apetece hoy? (ej. pasta, salmón, pizza...)'}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-12 border-0 bg-transparent text-base h-12 focus-visible:ring-0 placeholder:text-muted-foreground/40 font-medium"
@@ -239,6 +255,28 @@ export default function RecipesPage() {
             <span className="hidden sm:inline">Descubrir</span>
           </Button>
         </form>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant={dietMode === 'keto' ? 'default' : 'outline'}
+          className="rounded-full font-bold"
+          onClick={() => setDietMode('keto')}
+        >
+          Keto estricto
+        </Button>
+        <Button
+          type="button"
+          variant={dietMode === 'flexible' ? 'default' : 'outline'}
+          className="rounded-full font-bold"
+          onClick={() => setDietMode('flexible')}
+        >
+          Flexible
+        </Button>
+        <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold">
+          Modo actual: {modeLabel}
+        </Badge>
       </div>
 
       {/* ── ERROR STATE ── */}
