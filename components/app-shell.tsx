@@ -44,7 +44,14 @@ export function AppShell({ children }: AppShellProps) {
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <item.icon className={cn('h-5 w-5', isActive && 'stroke-[2.5px]')} />
+                <div className="relative">
+                  <item.icon className={cn('h-5 w-5', isActive && 'stroke-[2.5px]')} />
+                  {item.href === '/dashboard' && (
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-black text-white border-[1.5px] border-card shadow-sm group-hover:scale-110 transition-transform">
+                      N
+                    </span>
+                  )}
+                </div>
                 <span>{item.label}</span>
               </Link>
             )

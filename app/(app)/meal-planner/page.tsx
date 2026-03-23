@@ -201,8 +201,8 @@ export default function MealPlannerPage() {
           </Button>
         </div>
 
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-2.5 pb-2 px-1">
+        <ScrollArea className="w-full whitespace-nowrap -mx-4 px-4">
+          <div className="flex gap-3 py-4 px-2 relative z-10">
             {weekDays.map((day) => {
               const isSelected = isSameDay(day, selectedDate)
               const isDayToday = isSameDay(day, new Date())
@@ -211,9 +211,9 @@ export default function MealPlannerPage() {
                   key={day.toISOString()}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
-                    'relative flex min-w-14 flex-col items-center justify-center rounded-2xl p-3 transition-all active:scale-95 duration-200',
+                    'relative flex min-w-[70px] flex-col items-center justify-center rounded-2xl p-3 transition-all active:scale-95 duration-200',
                     isSelected
-                      ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary ring-offset-2 ring-offset-background'
+                      ? 'bg-primary text-primary-foreground scale-110 z-10 border-none outline-none ring-0 shadow-[0_10px_30px_-10px_rgba(var(--primary),0.5)]'
                       : 'bg-transparent text-foreground hover:bg-muted/60',
                     isDayToday && !isSelected && 'text-primary'
                   )}
@@ -376,7 +376,7 @@ export default function MealPlannerPage() {
               <Button
                 key={mt}
                 variant="outline"
-                className="h-12 rounded-2xl bg-card/50 backdrop-blur-xl border-border/50 shadow-sm font-bold active:scale-95 transition-all w-full"
+                className="h-12 rounded-2xl bg-card border border-border/40 shadow-sm font-bold active:scale-95 transition-all w-full hover:bg-muted/50"
                 onClick={() => handleOpenLog(mt)}
               >
                 <Plus className="mr-1 h-4 w-4 text-muted-foreground" />
