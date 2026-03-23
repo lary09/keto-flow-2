@@ -91,6 +91,8 @@ export default function RecipesPage() {
     setDietMode((current) => (current === nextMode ? current : nextMode))
   }, [searchParams])
 
+  const modeLabel = dietMode === 'keto' ? 'keto estricto' : 'flexible'
+
   // Fetch saved recipes on mount
   useEffect(() => {
     const fetchSavedRecipes = async () => {
