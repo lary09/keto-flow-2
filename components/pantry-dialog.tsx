@@ -7,20 +7,25 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Wand2, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAuth } from '@/contexts/auth-context'
-import { ID, databases, APPWRITE_DATABASE_ID, COLLECTIONS } from '@/lib/appwrite'
+import { useMealLogs } from '@/hooks/use-meal-logs'
 
 interface PantryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   date: string // YYYY-MM-DD to save the plan on
+  goals: {
+    calories: number
+    fat: number
+    protein: number
+    carbs: number
+  }
 }
 
-export const PantryDialog = ({ open, onOpenChange, date }: PantryDialogProps) => {
-  const { profile, user } = useAuth()
+export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogProps) => {
   const [ingredients, setIngredients] = useState<string[]>([])
   const [currentInput, setCurrentInput] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const { addMealLog, mutate } = useMealLogs(date)
 
   const handleAddIngredient = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && currentInput.trim()) {
@@ -39,10 +44,6 @@ export const PantryDialog = ({ open, onOpenChange, date }: PantryDialogProps) =>
       toast.error('Agrega al menos un ingrediente');
       return;
     }
-    if (!profile || !user) {
-      toast.error('Ocurrió un error con el perfil');
-      return;
-    }
 
     setIsGenerating(true)
     try {
@@ -51,12 +52,8 @@ export const PantryDialog = ({ open, onOpenChange, date }: PantryDialogProps) =>
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ingredients,
-          goals: {
-            calories: profile.dailyCalorieGoal,
-            fat: profile.dailyFatGoal,
-            protein: profile.dailyProteinGoal,
-            carbs: profile.dailyCarbGoal,
-          }
+          goals,
+          days: 1,
         }),
       })
 
@@ -64,43 +61,38 @@ export const PantryDialog = ({ open, onOpenChange, date }: PantryDialogProps) =>
         throw new Error('Error en el servidor al generar')
       }
 
-      const plan = await response.json()
+      const result = await response.json()
+      const dayPlan = result.plan?.[0]
 
-      // Guardar en la base de datos de Appwrite
+      if (!dayPlan) {
+        throw new Error('La IA no devolvió un plan válido para el día')
+      }
+
       const mealsToSave = [
-        { type: 'breakfast', data: plan.breakfast },
-        { type: 'lunch', data: plan.lunch },
-        { type: 'dinner', data: plan.dinner },
-        { type: 'snack', data: plan.snack },
+        { type: 'breakfast', data: dayPlan.breakfast },
+        { type: 'lunch', data: dayPlan.lunch },
+        { type: 'dinner', data: dayPlan.dinner },
       ]
 
       for (const meal of mealsToSave) {
-        if (!meal.data || !meal.data.foodName) continue;
-        
-        await databases.createDocument(
-            APPWRITE_DATABASE_ID,
-            COLLECTIONS.MEAL_LOGS,
-            ID.unique(),
-            {
-              userId: user.$id,
-              date,
-              mealType: meal.type,
-              foodId: `ai_${Date.now()}_${Math.random()}`,
-              foodName: meal.data.foodName,
-              calories: meal.data.calories,
-              fat: meal.data.fat,
-              protein: meal.data.protein,
-              carbs: meal.data.carbs,
-              servings: 1,
-              servingSize: '1 porción'
-            }
-        );
+        if (!meal.data?.title) continue
+
+        await addMealLog({
+          date,
+          mealType: meal.type as 'breakfast' | 'lunch' | 'dinner',
+          foodName: meal.data.title,
+          calories: Math.round(meal.data.calories || 0),
+          fat: Math.round(meal.data.fat || 0),
+          protein: Math.round(meal.data.protein || 0),
+          carbs: Math.round(meal.data.carbs || 0),
+        })
       }
 
+      await mutate()
       toast.success('¡Plan generado con éxito!')
       onOpenChange(false)
-      // Recargar la página o disparar mutación
-      window.location.reload() 
+      setIngredients([])
+      setCurrentInput('')
 
     } catch (error) {
       console.error(error)
@@ -148,11 +140,11 @@ export const PantryDialog = ({ open, onOpenChange, date }: PantryDialogProps) =>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isGenerating}>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={isGenerating}>
             Cancelar
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating || ingredients.length === 0}>
+          <Button className="w-full sm:w-auto" onClick={handleGenerate} disabled={isGenerating || ingredients.length === 0}>
             {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
             {isGenerating ? 'Creando Magia...' : 'Generar Día'}
           </Button>

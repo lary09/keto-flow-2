@@ -58,12 +58,21 @@ export function RecipeDetailSheet({
   const [detail, setDetail] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [addingToMeal, setAddingToMeal] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string>('/placeholder.jpg')
   const targetDate = date || new Date().toISOString().split('T')[0]
   const { addMealLog } = useMealLogs(targetDate)
 
   useEffect(() => {
     if (!recipe || !open) {
       setDetail(null)
+      return
+    }
+
+    setImageSrc(recipe.image || '/placeholder.jpg')
+
+    if (String(recipe.id).startsWith('ai_')) {
+      setIsLoading(false)
+      setDetail(recipe)
       return
     }
 
@@ -125,11 +134,12 @@ export function RecipeDetailSheet({
             {/* Hero Section Pro Max */}
             <div className="relative h-72 w-full">
               <Image
-                src={recipe.image}
-                alt={recipe.title}
+                src={imageSrc}
+                alt={data.title}
                 fill
                 className="object-cover"
                 priority
+                onError={() => setImageSrc('/placeholder.jpg')}
               />
               <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
               
@@ -153,7 +163,7 @@ export function RecipeDetailSheet({
                 <div className="mt-3 flex items-center gap-4 text-sm font-medium text-muted-foreground">
                   <span className="flex items-center gap-1.5 bg-background/30 backdrop-blur-sm px-2.5 py-1 rounded-full">
                     <Clock className="h-4 w-4 text-primary" />
-                    {recipe.readyInMinutes} min
+                    {data.readyInMinutes || recipe.readyInMinutes || 0} min
                   </span>
                   <span className="flex items-center gap-1.5 bg-background/30 backdrop-blur-sm px-2.5 py-1 rounded-full">
                     <Users className="h-4 w-4 text-primary" />
