@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/ai-cache';
+
+const FOOD_SEARCH_TTL_MS = 1000 * 60 * 30;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('query');
+  const query = searchParams.get('query')?.trim();
 
   if (!query) {
     return NextResponse.json({ recipes: [] });
@@ -15,6 +18,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const normalizedQuery = query.toLowerCase();
+    const cacheKey = buildCacheKey('food-search', { query: normalizedQuery });
+    const cached = getCachedValue<unknown>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json({ ...cached, source: 'cache' });
+    }
+
     // 1. Check Appwrite for cached community foods first
     const { databases, APPWRITE_DATABASE_ID, COLLECTIONS, Query } = await import('@/lib/appwrite');
     
@@ -37,7 +48,9 @@ export async function GET(request: NextRequest) {
           isCommunity: true
         }));
         
-        return NextResponse.json({ recipes: normalizedLocal, source: 'local' });
+        const payload = { recipes: normalizedLocal, source: 'local' };
+        setCachedValue(cacheKey, payload, FOOD_SEARCH_TTL_MS);
+        return NextResponse.json(payload);
       }
     } catch (e) {
       console.warn('Local search failed, falling back to LLM:', e);
@@ -100,7 +113,10 @@ Devuelve ÚNICAMENTE un JSON con esta estructura exacta:
         image: food.image,
     }));
 
-    return NextResponse.json({ recipes: normalizedFoods });
+    const payload = { recipes: normalizedFoods, source: 'llm' };
+    setCachedValue(cacheKey, payload, FOOD_SEARCH_TTL_MS);
+
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('LLM search error:', error);
     return NextResponse.json({ 
