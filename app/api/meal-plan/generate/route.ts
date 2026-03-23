@@ -1,181 +1,272 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/ai-cache'
 
 const requestSchema = z.object({
-  ingredients: z.array(z.string()),
-});
+  ingredients: z.array(z.string()).default([]),
+  goals: z.object({
+    calories: z.number().min(1200).max(5000),
+    fat: z.number().min(20).max(400),
+    protein: z.number().min(20).max(300),
+    carbs: z.number().min(5).max(80),
+  }).optional(),
+  days: z.number().int().min(1).max(7).default(7),
+})
 
-export async function POST(request: NextRequest) {
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const pexelsApiKey = process.env.PEXELS_API_KEY;
+const mealSchema = z.object({
+  title: z.string().min(3),
+  imageSearchTerm: z.string().min(2).max(80),
+  readyInMinutes: z.number().min(5).max(180),
+  servings: z.number().min(1).max(8),
+  calories: z.number().min(50).max(2000),
+  fat: z.number().min(1).max(200),
+  protein: z.number().min(1).max(150),
+  carbs: z.number().min(0).max(15),
+  ingredients: z.array(z.string()).min(3).max(8),
+  instructions: z.array(z.string()).min(2).max(4),
+})
 
-  if (!groqApiKey) {
-    return NextResponse.json({ error: 'GROQ_API_KEY no está configurada en el entorno' }, { status: 500 });
+const responseSchema = z.object({
+  reasoning: z.string().optional(),
+  days: z.array(z.object({
+    day: z.number().int().min(0).max(6),
+    breakfast: mealSchema,
+    lunch: mealSchema,
+    dinner: mealSchema,
+  })).min(1).max(7),
+})
+
+const DEFAULT_IMAGES = {
+  breakfast: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
+  lunch: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+  dinner: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+} as const
+
+const PLAN_TTL_MS = 1000 * 60 * 30
+const IMAGE_TTL_MS = 1000 * 60 * 60 * 12
+
+type MealType = keyof typeof DEFAULT_IMAGES
+
+function normalizeIngredients(ingredients: string[]) {
+  return Array.from(
+    new Set(
+      ingredients
+        .map((ingredient) => ingredient.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  ).slice(0, 18)
+}
+
+function normalizeGoals(goals?: z.infer<typeof requestSchema>['goals']) {
+  return goals ?? {
+    calories: 2000,
+    fat: 155,
+    protein: 110,
+    carbs: 25,
+  }
+}
+
+function sanitizeSearchTerm(value: string) {
+  return value
+    .replace(/keto|recipe|diet|low carb/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+async function fetchMealImage(searchTerm: string, mealType: MealType, pexelsApiKey?: string) {
+  const cleanSearchTerm = sanitizeSearchTerm(searchTerm) || mealType
+  const cacheKey = buildCacheKey('pexels-image', { cleanSearchTerm, mealType })
+  const cached = getCachedValue<string>(cacheKey)
+
+  if (cached) {
+    return cached
+  }
+
+  let imageUrl = DEFAULT_IMAGES[mealType]
+
+  if (!pexelsApiKey) {
+    return setCachedValue(cacheKey, imageUrl, IMAGE_TTL_MS)
   }
 
   try {
-    const body = await request.json();
-    const { ingredients } = requestSchema.parse(body);
+    const query = encodeURIComponent(`${cleanSearchTerm} food photography plated dish`)
+    const response = await fetch(`https://api.pexels.com/v1/search?query=${query}&per_page=1&page=1`, {
+      headers: { Authorization: pexelsApiKey },
+      next: { revalidate: 60 * 60 * 12 },
+    })
 
-    const systemPrompt = `
-Eres un Chef Ejecutivo Estrella Michelin y Nutriólogo Clínico especializado en Dieta Keto.
-El usuario proporcionó estos ingredientes: ${ingredients.join(', ')}.
+    if (response.ok) {
+      const data = await response.json()
+      const photo = data.photos?.[0]
+      if (photo?.src?.large || photo?.src?.medium) {
+        imageUrl = photo.src.large || photo.src.medium
+      }
+    }
+  } catch (error) {
+    console.warn('Pexels image lookup failed, using fallback image.', error)
+  }
 
-AGENTIC WORKFLOW: No respondas mecánicamente. Aplica principios de alta cocina. Diseña menús con texturas complejas, acidez equilibrada y emplatados bellos.
-Asegúrate rigurosamente de que CADA RECETA tenga menos de 15g de carbohidratos netos y grasas saludables.
+  return setCachedValue(cacheKey, imageUrl, IMAGE_TTL_MS)
+}
 
-REGLAS DE EFICIENCIA BACKEND (Obligatorias):
-1. Limita tu explicación en 'reasoning' a máximo 2 frases cortas. Exceder esto gastará tokens innecesarios.
-2. Cada paso en 'instructions' debe detallar técnicas culinarias exactas, tiempos de cocción, temperaturas y señales visuales de frescura/cocción (ej. "Sellar la pechuga a fuego alto por 4 mins hasta lograr una costra dorada").
-3. En 'ingredients', incluye las cantidades exactas y el estado físico (ej. "200g Salmón fresco, en cubos" en lugar de "Salmón").
+function buildPrompt({
+  ingredients,
+  goals,
+  days,
+}: {
+  ingredients: string[]
+  goals: ReturnType<typeof normalizeGoals>
+  days: number
+}) {
+  return `
+Eres un chef keto experto. Diseña un plan de ${days} día(s) usando principalmente estos ingredientes: ${ingredients.join(', ')}.
 
-IMPORTANTE: Todos los textos en ESPAÑOL. El campo 'imageSearchTerm' EN INGLÉS (sólo ingredientes básicos).
+Objetivos diarios aproximados:
+- calorías: ${goals.calories}
+- grasa: ${goals.fat}g
+- proteína: ${goals.protein}g
+- carbohidratos netos máximos: ${goals.carbs}g
 
-Devuelve este esquema exacto JSON:
+Reglas:
+- Responde SOLO JSON válido.
+- Devuelve días numerados desde 0.
+- Cada comida debe tener menos de 15g de carbs.
+- Máximo 8 ingredientes por receta.
+- Máximo 4 instrucciones cortas por receta.
+- Textos en español.
+- imageSearchTerm en inglés, simple, sin palabras "keto", "diet" o "recipe".
+- Usa títulos claros y apetitosos, pero compactos.
+
+Formato exacto:
 {
-  "reasoning": "Resumen conciso.",
+  "reasoning": "máximo 160 caracteres",
   "days": [
     {
       "day": 0,
       "breakfast": {
-        "title": "Huevos Poché sobre Cama de Aguacate",
-        "imageSearchTerm": "poached egg avocado slice",
+        "title": "",
+        "imageSearchTerm": "",
         "readyInMinutes": 15,
         "servings": 2,
         "calories": 400,
         "fat": 30,
         "protein": 20,
         "carbs": 5,
-        "ingredients": ["2 Huevos grandes fríos", "1/2 Aguacate Hass maduro, en rebanadas finas"],
-        "instructions": ["Crea un remolino en agua casi hirviendo con una cucharada de vinagre blanco.", "Desliza el huevo y cocina por exactamente 3 minutos para una yema líquida fluida."]
+        "ingredients": ["..."],
+        "instructions": ["..."]
       },
-      "lunch": {
-        "title": "Nombre del almuerzo",
-        "imageSearchTerm": "chicken breast salad",
-        "readyInMinutes": 20,
-        "servings": 2,
-        "calories": 600,
-        "fat": 45,
-        "protein": 35,
-        "carbs": 8,
-        "ingredients": ["ingrediente detallado"],
-        "instructions": ["Técnica culinaria detallada paso a paso"]
-      },
-      "dinner": {
-        "title": "Nombre de la cena",
-        "imageSearchTerm": "steak broccoli roasted",
-        "readyInMinutes": 30,
-        "servings": 2,
-        "calories": 550,
-        "fat": 40,
-        "protein": 30,
-        "carbs": 10,
-        "ingredients": ["ingrediente detallado"],
-        "instructions": ["Técnica culinaria detallada paso a paso"]
-      }
+      "lunch": {},
+      "dinner": {}
     }
   ]
 }
-`;
+`
+}
 
-    // Fetch from Groq API (Llama-3)
+export async function POST(request: NextRequest) {
+  const groqApiKey = process.env.GROQ_API_KEY
+  const pexelsApiKey = process.env.PEXELS_API_KEY
+
+  if (!groqApiKey) {
+    return NextResponse.json({ error: 'GROQ_API_KEY no está configurada en el entorno' }, { status: 500 })
+  }
+
+  try {
+    const body = requestSchema.parse(await request.json())
+    const ingredients = normalizeIngredients(body.ingredients)
+    const goals = normalizeGoals(body.goals)
+    const days = body.days
+
+    if (ingredients.length < 2) {
+      return NextResponse.json({ error: 'Debes enviar al menos 2 ingredientes válidos.' }, { status: 400 })
+    }
+
+    const cacheKey = buildCacheKey('meal-plan', { ingredients, goals, days })
+    const cachedPlan = getCachedValue<unknown>(cacheKey)
+
+    if (cachedPlan) {
+      return NextResponse.json({ ...cachedPlan, source: 'cache' })
+    }
+
+    const prompt = buildPrompt({ ingredients, goals, days })
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
+        Authorization: `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', 
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are a JSON-only API. Respond exclusively with valid JSON.' },
-          { role: 'user', content: systemPrompt }
+          { role: 'user', content: prompt },
         ],
-        temperature: 0.2, // Low temp for reliable JSON
-        max_tokens: 6000, 
-        response_format: { type: 'json_object' }
+        temperature: 0.15,
+        max_tokens: 3200,
+        response_format: { type: 'json_object' },
       }),
-    });
+    })
 
     if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status}`);
+      throw new Error(`Groq API error: ${response.status}`)
     }
 
-    const data = await response.json();
-    const parsedMeals = JSON.parse(data.choices[0].message.content);
+    const data = await response.json()
+    const rawPlan = JSON.parse(data.choices[0].message.content)
+    const parsedPlan = responseSchema.parse(rawPlan)
 
-    // Helpet function to add images via Pexels
-    const attachImage = async (mealObj: any, defaultType: string) => {
-       if (!mealObj) {
-           return {
-             id: `ai_${Date.now()}_err`,
-             title: `Opción de ${defaultType} (Pendiente)`,
-             image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-             readyInMinutes: 20, servings: 2, calories: 300, fat: 20, protein: 20, carbs: 5,
-             ingredients: ["Generación interrumpida"], ingredientLines: ["Generación interrumpida"], instructions: ["Por favor, intenta generar el plan nuevamente."]
-           };
-       }
-       let imageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
-       if (pexelsApiKey) {
-           try {
-             // Avoid human faces, diet text, and pull from randomized pages for variety
-             const safeTerm = (mealObj.imageSearchTerm || mealObj.title || "food").replace(/keto|recipe|diet/gi, "").trim();
-             const searchQuery = encodeURIComponent(`${safeTerm} dark food photography aesthetic plate`); 
-             const randomPage = Math.floor(Math.random() * 4) + 1;
-             const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${searchQuery}&per_page=12&page=${randomPage}`, {
-                headers: { 'Authorization': pexelsApiKey }
-             });
-             if (pexelsRes.ok) {
-                 const pexelsData = await pexelsRes.json();
-                 if (pexelsData.photos && pexelsData.photos.length > 0) {
-                     const randomIdx = Math.floor(Math.random() * pexelsData.photos.length);
-                     imageUrl = pexelsData.photos[randomIdx].src.large || pexelsData.photos[randomIdx].src.medium;
-                 }
-             }
-           } catch(e) {}
-       }
-       return {
-         id: `ai_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-         title: mealObj.title,
-         image: imageUrl,
-         readyInMinutes: mealObj.readyInMinutes || 20,
-         servings: mealObj.servings || 2,
-         calories: Math.round(mealObj.calories),
-         fat: Math.round(mealObj.fat),
-         protein: Math.round(mealObj.protein),
-         carbs: Math.round(mealObj.carbs),
-         ingredients: mealObj.ingredients || [],
-         ingredientLines: mealObj.ingredients || [], // Duplicate for backward compatibility with UI
-         instructions: mealObj.instructions || [],
-       };
-    };
+    const plan = await Promise.all(parsedPlan.days.slice(0, days).map(async (dayData) => {
+      const [breakfastImage, lunchImage, dinnerImage] = await Promise.all([
+        fetchMealImage(dayData.breakfast.imageSearchTerm || dayData.breakfast.title, 'breakfast', pexelsApiKey),
+        fetchMealImage(dayData.lunch.imageSearchTerm || dayData.lunch.title, 'lunch', pexelsApiKey),
+        fetchMealImage(dayData.dinner.imageSearchTerm || dayData.dinner.title, 'dinner', pexelsApiKey),
+      ])
 
-    const daysArray = parsedMeals.days || [];
-    
-    const weekPlanPromises = daysArray.map(async (dayData: any) => {
-      const b = await attachImage(dayData.breakfast, 'breakfast');
-      const l = await attachImage(dayData.lunch, 'lunch');
-      const d = await attachImage(dayData.dinner, 'dinner');
       return {
         day: dayData.day,
-        breakfast: b,
-        lunch: l,
-        dinner: d,
-      };
-    });
+        breakfast: {
+          id: `ai_day${dayData.day}_breakfast_${dayData.breakfast.title.toLowerCase().replace(/\s+/g, '-')}`,
+          ...dayData.breakfast,
+          image: breakfastImage,
+          ingredientLines: dayData.breakfast.ingredients,
+        },
+        lunch: {
+          id: `ai_day${dayData.day}_lunch_${dayData.lunch.title.toLowerCase().replace(/\s+/g, '-')}`,
+          ...dayData.lunch,
+          image: lunchImage,
+          ingredientLines: dayData.lunch.ingredients,
+        },
+        dinner: {
+          id: `ai_day${dayData.day}_dinner_${dayData.dinner.title.toLowerCase().replace(/\s+/g, '-')}`,
+          ...dayData.dinner,
+          image: dinnerImage,
+          ingredientLines: dayData.dinner.ingredients,
+        },
+      }
+    }))
 
-    const weekPlan = await Promise.all(weekPlanPromises);
+    const payload = {
+      plan,
+      goals,
+      totalRecipes: {
+        breakfast: plan.length,
+        lunch: plan.length,
+        dinner: plan.length,
+      },
+      generatedAt: new Date().toISOString(),
+      source: 'llm',
+    }
 
-    return NextResponse.json({
-      plan: weekPlan,
-      totalRecipes: { breakfast: 7, lunch: 7, dinner: 7 },
-    });
+    setCachedValue(cacheKey, payload, PLAN_TTL_MS)
 
+    return NextResponse.json(payload)
   } catch (error) {
-    console.error('Error in Groq meal plan generation:', error);
-    return NextResponse.json({ 
-      error: 'Error al generar el plan', 
-      details: error instanceof Error ? error.message : String(error) 
-    }, { status: 500 });
+    console.error('Error in Groq meal plan generation:', error)
+    return NextResponse.json({
+      error: 'Error al generar el plan',
+      details: error instanceof Error ? error.message : String(error),
+    }, { status: 500 })
   }
 }
