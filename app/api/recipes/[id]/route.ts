@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/ai-cache';
+
+const RECIPE_DETAIL_TTL_MS = 1000 * 60 * 60 * 6;
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +20,13 @@ export async function GET(
   const { id } = await params;
 
   try {
+    const cacheKey = buildCacheKey('recipe-detail', { id });
+    const cached = getCachedValue<unknown>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
     // Edamam expects the full URI or the ID. Since we store the ID, 
     // we reconstruct the URI: http://www.edamam.com/ontologies/edamam.owl#recipe_{id}
     const recipeUri = `http://www.edamam.com/ontologies/edamam.owl#recipe_${id}`;
@@ -37,7 +47,7 @@ export async function GET(
 
     const nutrients = recipe.totalNutrients || {};
 
-    return NextResponse.json({
+    const payload = {
       id: id,
       title: recipe.label,
       image: recipe.image,
@@ -52,7 +62,11 @@ export async function GET(
       ingredientLines: recipe.ingredientLines,
       healthLabels: recipe.healthLabels,
       dietLabels: recipe.dietLabels,
-    });
+    };
+
+    setCachedValue(cacheKey, payload, RECIPE_DETAIL_TTL_MS);
+
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('Failed to get recipe detail:', error);
     return NextResponse.json(
