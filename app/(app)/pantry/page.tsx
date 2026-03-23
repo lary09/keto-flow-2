@@ -135,16 +135,16 @@ export default function PantryPage() {
         <div className="absolute -inset-1 rounded-4xl bg-linear-to-r from-primary/30 to-accent/30 opacity-40 blur-lg transition duration-1000 group-hover:opacity-100 group-hover:duration-200" />
         <form 
           onSubmit={handleAddItem} 
-          className="relative flex flex-col sm:flex-row items-center bg-card/90 backdrop-blur-2xl rounded-4xl border border-white/10 shadow-2xl overflow-hidden p-2 gap-2"
+          className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-card shadow-2xl rounded-4xl border border-white/20 overflow-hidden gap-0 divide-y-0"
         >
-          <div className="flex flex-1 items-center w-full px-4 text-foreground">
+          <div className="flex flex-1 items-center w-full px-4 text-foreground bg-transparent border-none !border-0 shadow-none !shadow-none outline-none">
             <Search className="h-5 w-5 text-muted-foreground mr-3" />
             <Input
               placeholder="Ej. Huevos, Aguacate, Pollo..."
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               disabled={isAdding}
-              className="flex-1 border-0 focus-visible:ring-0 text-lg sm:text-xl bg-transparent px-0 placeholder:text-muted-foreground/50 h-14"
+              className="flex-1 border-none focus-visible:ring-0 text-lg sm:text-xl bg-transparent px-0 placeholder:text-muted-foreground/30 h-14 shadow-none appearance-none"
             />
           </div>
           <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pl-4 sm:flex sm:w-auto sm:pl-0 border-t sm:border-t-0 border-white/10 pt-2 sm:pt-0">
@@ -174,7 +174,7 @@ export default function PantryPage() {
               className="h-12 w-12 shrink-0 rounded-2xl sm:w-auto sm:px-6 bg-primary text-primary-foreground font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
               aria-label="Añadir ingrediente"
             >
-              <Plus className="h-5 w-5 sm:mr-2" />
+              <Plus className="h-5 w-5 shrink-0" />
               <span className="hidden sm:inline">Añadir</span>
             </Button>
           </div>
@@ -191,7 +191,7 @@ export default function PantryPage() {
                 <button
                   key={s.name}
                   onClick={() => handleQuickAdd(s.name, s.category)}
-                  className="group shrink-0 snap-center rounded-full bg-card/50 backdrop-blur-md border border-white/5 py-2.5 px-6 text-sm font-semibold text-foreground/80 shadow-sm transition-all duration-500 hover:scale-110 hover:bg-card hover:text-foreground hover:border-white/20 hover:shadow-xl active:scale-95 flex items-center gap-2"
+                  className="group shrink-0 snap-center rounded-full bg-card/60 backdrop-blur-md border border-white/10 py-2.5 px-6 text-sm font-black text-foreground/80 shadow-sm transition-all duration-500 hover:scale-105 hover:bg-card hover:text-foreground hover:border-primary/40 hover:shadow-xl active:scale-95 flex items-center gap-2"
                 >
                   <config.icon className={cn('h-4 w-4 transition-transform group-hover:scale-125', config.color)} />
                   {s.name}
@@ -207,7 +207,7 @@ export default function PantryPage() {
       {items.length >= 3 && (
         <div className="mx-auto w-full max-w-5xl mt-2 mb-4">
           <Link href="/meal-planner">
-            <div className="group relative overflow-hidden rounded-4xl border border-primary/20 bg-card p-1 transition-all duration-700 hover:shadow-[0_0_50px_-15px_rgba(var(--primary),0.3)] hover:-translate-y-1 cursor-pointer">
+            <div className="group relative overflow-hidden rounded-4xl border border-primary/20 bg-card p-1 shadow-xs transition-all duration-700 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 cursor-pointer">
               <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-transparent to-accent/10 opacity-50 group-hover:opacity-100 transition-opacity duration-700" />
               <div className="relative flex items-center gap-6 rounded-4xl bg-card/80 backdrop-blur-xl p-6 sm:p-8">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-accent shadow-inner text-white transform transition-transform duration-700 group-hover:rotate-12 group-hover:scale-110">
