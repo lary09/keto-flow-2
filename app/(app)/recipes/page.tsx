@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,10 +44,34 @@ function RecipeGridImage({ src, alt }: { src: string; alt: string }) {
   )
 }
 
+function parseRecipeIngredients(rawIngredients: unknown) {
+  if (Array.isArray(rawIngredients)) {
+    return rawIngredients.filter((item): item is string => typeof item === 'string')
+  }
+
+  if (typeof rawIngredients !== 'string' || rawIngredients.trim() === '') {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(rawIngredients)
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch (error) {
+    console.warn('No se pudieron hidratar los ingredientes guardados de la receta.', error)
+    return []
+  }
+}
+
 export default function RecipesPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
-  const [query, setQuery] = useState('')
-  const [dietMode, setDietMode] = useState<DietMode>('keto')
+  const [query, setQuery] = useState(searchParams.get('query') || '')
+  const [dietMode, setDietMode] = useState<DietMode>(
+    searchParams.get('mode') === 'flexible' ? 'flexible' : 'keto'
+  )
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
@@ -54,6 +79,17 @@ export default function RecipesPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const lastSearchRef = useRef<string | null>(null)
+
+  const modeLabel = dietMode === 'keto' ? 'keto estricto' : 'flexible'
+
+  useEffect(() => {
+    const nextQuery = searchParams.get('query') || ''
+    const nextMode = searchParams.get('mode') === 'flexible' ? 'flexible' : 'keto'
+
+    setQuery((current) => (current === nextQuery ? current : nextQuery))
+    setDietMode((current) => (current === nextMode ? current : nextMode))
+  }, [searchParams])
 
   const modeLabel = dietMode === 'keto' ? 'keto estricto' : 'flexible'
 
@@ -76,26 +112,23 @@ export default function RecipesPage() {
     fetchSavedRecipes()
   }, [user])
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    e?.preventDefault()
-    if (!query.trim()) return
-
+  const searchRecipes = useCallback(async (searchQuery: string, mode: DietMode) => {
     setIsLoading(true)
     setError(null)
     setHasSearched(true)
 
     try {
-      const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(query)}&number=12&mode=${dietMode}`)
+      const response = await fetch(`/api/recipes/search?query=${encodeURIComponent(searchQuery)}&number=12&mode=${mode}`)
       if (!response.ok) {
         throw new Error('Failed to search recipes')
       }
       const data = await response.json()
       setRecipes(data.recipes || [])
-      if (dietMode === 'keto' && data.filteredOut > 0) {
+      if (mode === 'keto' && data.filteredOut > 0) {
         toast.info(`Filtré ${data.filteredOut} receta(s) por no cumplir el modo keto estricto.`)
       }
       if ((data.recipes || []).length === 0) {
-        toast.info(dietMode === 'keto' ? 'No encontré recetas keto válidas con esa búsqueda. Prueba otro ingrediente o usa modo flexible.' : 'No encontré recetas para esa búsqueda. Prueba con otro término.')
+        toast.info(mode === 'keto' ? 'No encontré recetas keto válidas con esa búsqueda. Prueba otro ingrediente o usa modo flexible.' : 'No encontré recetas para esa búsqueda. Prueba con otro término.')
       }
     } catch (err) {
       console.error('Error de búsqueda:', err)
@@ -104,6 +137,20 @@ export default function RecipesPage() {
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) return
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('query', trimmedQuery)
+    params.set('mode', dietMode)
+    lastSearchRef.current = `${dietMode}:${trimmedQuery}`
+    router.replace(`/recipes?${params.toString()}`)
+
+    await searchRecipes(trimmedQuery, dietMode)
   }
 
   // Load popular keto recipes on mount with variety (Organic Cache first, then fallback to AI)
@@ -130,8 +177,8 @@ export default function RecipesPage() {
               fat: doc.fat,
               protein: doc.protein,
               carbs: doc.carbs,
-              netCarbs: doc.carbs,
-              ingredients: doc.ingredients ? JSON.parse(doc.ingredients) : []
+              netCarbs: doc.netCarbs ?? doc.carbs,
+              ingredients: parseRecipeIngredients(doc.ingredients)
            }))
 
            const modeAwareRecipes = dietMode === 'keto'
@@ -171,6 +218,35 @@ export default function RecipesPage() {
     }
     loadInitialRecipes()
   }, [dietMode])
+
+  useEffect(() => {
+    const activeQuery = searchParams.get('query')?.trim()
+    const activeMode = searchParams.get('mode') === 'flexible' ? 'flexible' : 'keto'
+
+    if (!activeQuery) {
+      return
+    }
+
+    const searchKey = `${activeMode}:${activeQuery}`
+    if (lastSearchRef.current === searchKey) {
+      return
+    }
+
+    lastSearchRef.current = searchKey
+    void searchRecipes(activeQuery, activeMode)
+  }, [searchParams, searchRecipes])
+
+  const handleDietModeChange = (mode: DietMode) => {
+    setDietMode(mode)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('mode', mode)
+    if (query.trim()) {
+      params.set('query', query.trim())
+    } else {
+      params.delete('query')
+    }
+    router.replace(`/recipes?${params.toString()}`)
+  }
 
   const toggleSaveRecipe = useCallback(async (recipe: Recipe) => {
     if (!user) return
@@ -278,7 +354,7 @@ export default function RecipesPage() {
           type="button"
           variant={dietMode === 'keto' ? 'default' : 'outline'}
           className="rounded-full font-bold"
-          onClick={() => setDietMode('keto')}
+          onClick={() => handleDietModeChange('keto')}
         >
           Keto estricto
         </Button>
@@ -286,7 +362,7 @@ export default function RecipesPage() {
           type="button"
           variant={dietMode === 'flexible' ? 'default' : 'outline'}
           className="rounded-full font-bold"
-          onClick={() => setDietMode('flexible')}
+          onClick={() => handleDietModeChange('flexible')}
         >
           Flexible
         </Button>
