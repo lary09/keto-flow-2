@@ -58,6 +58,7 @@ export function RecipeDetailSheet({
   const [detail, setDetail] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [addingToMeal, setAddingToMeal] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string>('/placeholder.jpg')
   const targetDate = date || new Date().toISOString().split('T')[0]
   const { addMealLog } = useMealLogs(targetDate)
 
@@ -66,6 +67,8 @@ export function RecipeDetailSheet({
       setDetail(null)
       return
     }
+
+    setImageSrc(recipe.image || '/placeholder.jpg')
 
     if (String(recipe.id).startsWith('ai_')) {
       setIsLoading(false)
@@ -131,11 +134,12 @@ export function RecipeDetailSheet({
             {/* Hero Section Pro Max */}
             <div className="relative h-72 w-full">
               <Image
-                src={data.image}
+                src={imageSrc}
                 alt={data.title}
                 fill
                 className="object-cover"
                 priority
+                onError={() => setImageSrc('/placeholder.jpg')}
               />
               <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
               

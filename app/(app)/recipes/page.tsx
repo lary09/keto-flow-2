@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,6 +28,20 @@ interface Recipe {
 }
 
 type DietMode = 'keto' | 'flexible'
+
+function RecipeGridImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      className="object-cover w-full h-full transform transition-transform duration-700 group-hover:scale-110"
+      onError={(event) => {
+        event.currentTarget.src = '/placeholder.jpg'
+      }}
+    />
+  )
+}
 
 export default function RecipesPage() {
   const { user } = useAuth()
@@ -80,6 +93,9 @@ export default function RecipesPage() {
       setRecipes(data.recipes || [])
       if (dietMode === 'keto' && data.filteredOut > 0) {
         toast.info(`Filtré ${data.filteredOut} receta(s) por no cumplir el modo keto estricto.`)
+      }
+      if ((data.recipes || []).length === 0) {
+        toast.info(dietMode === 'keto' ? 'No encontré recetas keto válidas con esa búsqueda. Prueba otro ingrediente o usa modo flexible.' : 'No encontré recetas para esa búsqueda. Prueba con otro término.')
       }
     } catch (err) {
       console.error('Error de búsqueda:', err)
@@ -294,15 +310,26 @@ export default function RecipesPage() {
         </Card>
       )}
 
-      {/* ── MASONRY-STYLE GRID ── */}
-      <div className="columns-2 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+      {!isLoading && !error && hasSearched && recipes.length === 0 && (
+        <Card className="border-border/60 bg-card/40 rounded-3xl overflow-hidden">
+          <CardContent className="py-8 text-center">
+            <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Sin resultados válidos</p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              No encontré recetas que encajaran con el modo <span className="font-bold text-foreground">{modeLabel}</span>. Prueba con otro ingrediente o cambia a modo flexible.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── SYMMETRIC GRID ── */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
         
         {/* Loading Skeletons */}
         {isLoading && (
           [1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="break-inside-avoid">
-              <Card className="overflow-hidden border-border/50 rounded-3xl h-fit">
-                <Skeleton className={cn("w-full", i % 2 === 0 ? "aspect-square" : "aspect-video")} />
+            <div key={i}>
+              <Card className="overflow-hidden border-border/50 rounded-3xl h-full">
+                <Skeleton className="aspect-[4/5] w-full" />
                 <CardContent className="p-4 space-y-3">
                   <Skeleton className="h-4 w-3/4" />
                   <div className="flex gap-2">
@@ -317,18 +344,15 @@ export default function RecipesPage() {
 
         {/* Recipe Cards */}
         {!isLoading && recipes.map((recipe, index) => (
-          <div key={recipe.id} className="break-inside-avoid">
+          <div key={recipe.id}>
             <Card
-              className="group relative cursor-pointer overflow-hidden border-border/40 hover:border-primary/40 transition-all duration-500 rounded-3xl shadow-xs hover:shadow-2xl hover:-translate-y-1 bg-card/40 backdrop-blur-md"
+              className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-3xl border-border/40 bg-card/40 backdrop-blur-md shadow-xs transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-2xl"
               onClick={() => openRecipeDetail(recipe)}
             >
-              <div className={cn("relative w-full", index % 3 === 0 ? "aspect-square" : "aspect-4/5")}>
-                <Image
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted/20">
+                <RecipeGridImage
                   src={recipe.image}
                   alt={recipe.title}
-                  fill
-                  className="object-cover transform transition-transform duration-700 group-hover:scale-110"
-                  sizes="(max-width: 640px) 50vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                 
@@ -353,7 +377,7 @@ export default function RecipesPage() {
                   <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest opacity-80">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {recipe.readyInMinutes}'
+                      {recipe.readyInMinutes} min
                     </span>
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
@@ -366,7 +390,7 @@ export default function RecipesPage() {
                 </div>
               </div>
               
-              <CardContent className="p-3">
+              <CardContent className="mt-auto p-3">
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   <Badge variant="secondary" className="bg-primary/5 text-primary border-0 text-[9px] font-black uppercase tracking-tighter px-2">
                     {Math.round(recipe.netCarbs)}g NET
@@ -380,17 +404,6 @@ export default function RecipesPage() {
           </div>
         ))}
       </div>
-
-      {/* ── EMPTY STATE ── */}
-      {!isLoading && hasSearched && recipes.length === 0 && !error && (
-        <div className="py-20 flex flex-col items-center justify-center text-center opacity-70">
-          <div className="w-20 h-20 bg-muted/30 rounded-4xl flex items-center justify-center mb-6">
-            <Search className="w-10 h-10 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-black text-foreground">Sin Secretos de Cocina</h3>
-          <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">Intenta buscar algo más sencillo como "Pollo" o "Aguacate".</p>
-        </div>
-      )}
 
       {/* ── RECIPE DETAIL SHEET ── */}
       <RecipeDetailSheet

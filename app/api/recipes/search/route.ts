@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/ai-cache'
 
+const rawRecipeSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().optional(),
+  imageSearchTerm: z.string().optional(),
+  readyInMinutes: z.coerce.number().optional(),
+  servings: z.coerce.number().optional(),
+  calories: z.coerce.number().optional(),
+  fat: z.coerce.number().optional(),
+  protein: z.coerce.number().optional(),
+  carbs: z.coerce.number().optional(),
+  netCarbs: z.coerce.number().optional(),
+  ingredients: z.array(z.string()).optional(),
+  instructions: z.array(z.string()).optional(),
+})
+
+const rawResponseSchema = z.object({
+  reasoning: z.string().optional(),
+  recipes: z.array(rawRecipeSchema).min(1).max(12),
+})
+
 const recipeSchema = z.object({
   id: z.string().min(2),
   title: z.string().min(3),
@@ -15,11 +35,6 @@ const recipeSchema = z.object({
   netCarbs: z.number().min(0).max(60),
   ingredients: z.array(z.string()).min(3).max(10),
   instructions: z.array(z.string()).min(2).max(5),
-})
-
-const responseSchema = z.object({
-  reasoning: z.string().optional(),
-  recipes: z.array(recipeSchema).min(1).max(12),
 })
 
 const dietModeSchema = z.enum(['keto', 'flexible'])
@@ -72,6 +87,66 @@ function normalizeText(value: string) {
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
+}
+
+function fillArray(values: string[], minimum: number, fallbackPool: string[]) {
+  const result = [...values]
+
+  for (const fallback of fallbackPool) {
+    if (result.length >= minimum) break
+    if (!result.includes(fallback)) {
+      result.push(fallback)
+    }
+  }
+
+  return result
+}
+
+function normalizeRecipe(
+  recipe: z.infer<typeof rawRecipeSchema>,
+  index: number,
+  mode: z.infer<typeof dietModeSchema>,
+  query: string
+) {
+  const title = recipe.title?.trim() || `${mode === 'keto' ? 'Receta keto' : 'Receta'} ${index + 1}`
+  const baseIngredients = (recipe.ingredients || [])
+    .map((ingredient) => ingredient.trim())
+    .filter(Boolean)
+
+  const ingredients = fillArray(
+    baseIngredients,
+    3,
+    mode === 'keto'
+      ? ['aceite de oliva', 'sal', 'pimienta']
+      : ['aceite de oliva', 'sal', 'hierbas frescas']
+  ).slice(0, 10)
+
+  const instructions = fillArray(
+    (recipe.instructions || [])
+      .map((instruction) => instruction.trim())
+      .filter(Boolean),
+    2,
+    ['Ajusta sazón al gusto.', 'Sirve de inmediato.']
+  ).slice(0, 5)
+
+  const carbs = Math.max(0, Number(recipe.carbs || 0))
+  const netCarbs = Math.max(0, Number(recipe.netCarbs ?? carbs))
+  const normalized = {
+    id: safeRecipeId(recipe.id?.trim() || title),
+    title,
+    imageSearchTerm: (recipe.imageSearchTerm?.trim() || query).slice(0, 80),
+    readyInMinutes: Math.min(180, Math.max(5, Math.round(Number(recipe.readyInMinutes || 20)))),
+    servings: Math.min(8, Math.max(1, Math.round(Number(recipe.servings || 2)))),
+    calories: Math.min(2200, Math.max(50, Math.round(Number(recipe.calories || 320)))),
+    fat: Math.min(220, Math.max(1, Math.round(Number(recipe.fat || 12)))),
+    protein: Math.min(170, Math.max(1, Math.round(Number(recipe.protein || 12)))),
+    carbs: Math.min(90, Math.round(carbs)),
+    netCarbs: Math.min(60, Math.round(netCarbs)),
+    ingredients,
+    instructions,
+  }
+
+  return recipeSchema.safeParse(normalized)
 }
 
 function isStrictKetoRecipe(recipe: z.infer<typeof recipeSchema>) {
@@ -130,6 +205,7 @@ Reglas:
 - Responde SOLO JSON válido.
 - Todas las recetas deben ser verdaderamente keto, con netCarbs <= 15.
 - Prohibido incluir pan, tostadas, arroz, pasta, avena, harina, maíz, azúcar, papas o frijoles.
+- Si te falta un dato, completa con una opción razonable en vez de dejarlo vacío.
 - Máximo 8 ingredientes por receta.
 - Máximo 4 instrucciones cortas por receta.
 - Textos en español.
@@ -163,6 +239,7 @@ Formato exacto:
 Reglas:
 - Responde SOLO JSON válido.
 - No hace falta que sean keto estrictas.
+- Si te falta un dato, completa con una opción razonable en vez de dejarlo vacío.
 - Mantén las recetas fáciles de cocinar y coherentes con la búsqueda.
 - Máximo 10 ingredientes por receta.
 - Máximo 5 instrucciones cortas por receta.
@@ -243,13 +320,13 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await aiRes.json()
-    const resultJson = responseSchema.parse(JSON.parse(data.choices[0].message.content))
+    const resultJson = rawResponseSchema.parse(JSON.parse(data.choices[0].message.content))
     const normalizedRecipes = resultJson.recipes
       .slice(0, limit)
-      .map((recipe) => ({
-        ...recipe,
-        id: recipe.id ? safeRecipeId(recipe.id) : safeRecipeId(recipe.title),
-      }))
+      .flatMap((recipe, index) => {
+        const normalized = normalizeRecipe(recipe, index, mode, query)
+        return normalized.success ? [normalized.data] : []
+      })
 
     const validRecipes = mode === 'keto'
       ? normalizedRecipes.filter(isStrictKetoRecipe)
