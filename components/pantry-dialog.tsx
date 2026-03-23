@@ -27,6 +27,16 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
   const [isGenerating, setIsGenerating] = useState(false)
   const { addMealLog, mutate } = useMealLogs(date)
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen)
+
+    if (!nextOpen) {
+      setIngredients([])
+      setCurrentInput('')
+      setIsGenerating(false)
+    }
+  }
+
   const handleAddIngredient = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && currentInput.trim()) {
       e.preventDefault();
@@ -40,8 +50,8 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
   }
 
   const handleGenerate = async () => {
-    if (ingredients.length === 0) {
-      toast.error('Agrega al menos un ingrediente');
+    if (ingredients.length < 2) {
+      toast.error('Agrega al menos 2 ingredientes');
       return;
     }
 
@@ -90,9 +100,7 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
 
       await mutate()
       toast.success('¡Plan generado con éxito!')
-      onOpenChange(false)
-      setIngredients([])
-      setCurrentInput('')
+      handleOpenChange(false)
 
     } catch (error) {
       console.error(error)
@@ -103,7 +111,7 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -132,7 +140,7 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
             {ingredients.map((ing, i) => (
               <div key={i} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
                 {ing}
-                <button disabled={isGenerating} onClick={() => removeIngredient(i)} className="hover:text-primary/70">
+                <button type="button" disabled={isGenerating} onClick={() => removeIngredient(i)} className="hover:text-primary/70">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -141,10 +149,10 @@ export const PantryDialog = ({ open, onOpenChange, date, goals }: PantryDialogPr
         </div>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)} disabled={isGenerating}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => handleOpenChange(false)} disabled={isGenerating}>
             Cancelar
           </Button>
-          <Button className="w-full sm:w-auto" onClick={handleGenerate} disabled={isGenerating || ingredients.length === 0}>
+          <Button className="w-full sm:w-auto" onClick={handleGenerate} disabled={isGenerating || ingredients.length < 2}>
             {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
             {isGenerating ? 'Creando Magia...' : 'Generar Día'}
           </Button>

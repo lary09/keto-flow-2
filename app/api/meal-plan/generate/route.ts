@@ -249,6 +249,7 @@ export async function POST(request: NextRequest) {
 
     const payload = {
       plan,
+      days: plan,
       goals,
       totalRecipes: {
         breakfast: plan.length,
