@@ -143,7 +143,7 @@ export function RecipeDetailSheet({
               />
               <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
               
-              <div className="absolute top-4 right-4 flex gap-2">
+              <div className="absolute top-4 left-4 flex gap-2">
                 <Button 
                   size="icon" 
                   variant="secondary" 
