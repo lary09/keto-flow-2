@@ -147,12 +147,12 @@ export default function PantryPage() {
               className="flex-1 border-none focus-visible:ring-0 text-lg sm:text-xl bg-transparent px-0 placeholder:text-muted-foreground/30 h-14 shadow-none appearance-none"
             />
           </div>
-          <div className="flex w-full sm:w-auto flex-1 items-center gap-2 px-3 py-3 border-none !border-0 sm:py-0">
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pl-4 sm:flex sm:w-auto sm:pl-0 border-t sm:border-t-0 border-white/10 pt-2 sm:pt-0">
             <Select
               value={newItemCategory}
               onValueChange={(v) => setNewItemCategory(v as PantryItem['category'])}
             >
-              <SelectTrigger className="w-full sm:w-[150px] border-none bg-muted/40 focus:ring-0 focus:ring-offset-0 rounded-2xl h-12 shadow-none">
+              <SelectTrigger className="w-full sm:w-[150px] border-0 bg-muted/50 focus:ring-0 rounded-2xl h-12 min-w-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-white/10 bg-card/95 backdrop-blur-xl">
@@ -171,7 +171,8 @@ export default function PantryPage() {
             <Button 
               type="submit" 
               disabled={isAdding || !newItemName.trim()}
-              className="w-full sm:w-auto rounded-3xl sm:rounded-2xl px-6 h-12 bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 border-none !border-0 ring-0 !ring-0"
+              className="h-12 w-12 shrink-0 rounded-2xl sm:w-auto sm:px-6 bg-primary text-primary-foreground font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
+              aria-label="Añadir ingrediente"
             >
               <Plus className="h-5 w-5 shrink-0" />
               <span className="hidden sm:inline">Añadir</span>
