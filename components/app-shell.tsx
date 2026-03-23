@@ -24,13 +24,14 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       {/* Main content area with bottom padding for nav */}
-      <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 overflow-y-auto pb-[calc(6.5rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
 
       {/* Bottom navigation */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-sm supports-backdrop-filter:bg-card/80">
-        <div className="mx-auto flex h-16 max-w-lg items-center justify-around px-4">
+      <nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="mx-auto max-w-xl rounded-[1.75rem] border border-border/70 bg-card/92 px-2 py-2 shadow-lg backdrop-blur-xl supports-backdrop-filter:bg-card/80">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
             return (
@@ -38,27 +39,19 @@ export function AppShell({ children }: AppShellProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors',
+                  'flex min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition-all',
                   isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary/12 text-primary shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
                 )}
               >
-                <div className="relative">
-                  <item.icon className={cn('h-5 w-5', isActive && 'stroke-[2.5px]')} />
-                  {item.href === '/dashboard' && (
-                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[8px] font-black text-white border-[1.5px] border-card shadow-sm group-hover:scale-110 transition-transform">
-                      N
-                    </span>
-                  )}
-                </div>
-                <span>{item.label}</span>
+                <item.icon className={cn('h-[18px] w-[18px]', isActive && 'stroke-[2.4px]')} />
+                <span className="truncate">{item.label}</span>
               </Link>
             )
           })}
+          </div>
         </div>
-        {/* Safe area for iOS devices */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
       </nav>
     </div>
   )

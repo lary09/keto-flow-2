@@ -133,6 +133,8 @@ export default function MealPlannerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ingredients: pantryItems.map((i) => i.name),
+          goals,
+          days: 7,
         }),
       })
 
@@ -400,6 +402,7 @@ export default function MealPlannerPage() {
         open={pantryDialogOpen}
         onOpenChange={setPantryDialogOpen}
         date={dateString}
+        goals={goals}
       />
 
       {/* Recipe Detail Sheet */}
